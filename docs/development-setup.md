@@ -32,7 +32,6 @@ Review the `compose.yaml` file to understand the service configuration. Key serv
 - **nginx**: Reverse proxy (only service exposed to users)
 - **jumphost**: SSH access host
 - **remote-terminal**: Remote terminal service
-- **k8s-api-server**: KIND Kubernetes cluster
 - **redis**: Redis database for Facilitator
 - **facilitator**: Backend service
 
@@ -67,7 +66,7 @@ The VNC server is not directly exposed outside the container network. To access 
 
 SSH access is provided through the jumphost service:
 
-- **Hostname**: ckad9999
+- **Hostname**: jumphost
 - **Username**: candidate
 - **Password**: password (configured in compose.yaml)
 
@@ -126,25 +125,7 @@ nginx:
 
 Nginx is the only service directly exposed to users and handles routing to internal services.
 
-### 4. Kubernetes Cluster
-
-```yaml
-# From compose.yaml
-k8s-api-server:
-  image: nishanb/ck-x-simulator-cluster:latest
-  container_name: kind-cluster
-  hostname: k8s-api-server
-  privileged: true  # Required for running containers inside KIND
-  expose:
-    - "6443:6443" 
-    - "22"
-  volumes:
-    - kube-config:/home/candidate/.kube  # Shared volume for Kubernetes config
-```
-
-The Kubernetes cluster runs in a KIND container with shared kube-config volume.
-
-### 5. Facilitator Service
+### 4. Facilitator Service
 
 ```yaml
 # From compose.yaml
@@ -166,7 +147,7 @@ facilitator:
     - REDIS_PORT=6379
 ```
 
-The facilitator service handles backend operations and communicates with the Kubernetes cluster.
+The facilitator service handles backend operations and exam orchestration.
 
 ## Development Workflow
 
@@ -202,7 +183,6 @@ docker-compose exec <service-name> bash
 # Examples:
 docker-compose exec webapp bash
 docker-compose exec facilitator bash
-docker-compose exec k8s-api-server bash
 ```
 
 ## Troubleshooting
@@ -225,17 +205,7 @@ docker-compose exec remote-desktop ps aux | grep vnc
 docker-compose restart remote-desktop
 ```
 
-### 3. Kubernetes Cluster Issues
-
-```bash
-# Check cluster status
-docker-compose exec k8s-api-server kubectl cluster-info
-
-# Restart the cluster
-docker-compose restart k8s-api-server
-```
-
-### 4. Resource Constraints
+### 3. Resource Constraints
 
 If your system cannot handle the resource requirements, adjust the limits in compose.yaml:
 
@@ -260,19 +230,8 @@ networks:
 
 Services can communicate with each other using their service names as hostnames.
 
-## Volume Management
-
-The system uses persistent volumes for:
-
-```yaml
-volumes:
-  kube-config:  # Shared volume for Kubernetes configuration
-  redis-data:   # Persistent volume for Redis data
-```
-
 ## Reference Links
 
 - [Docker Compose Documentation](https://docs.docker.com/compose/)
-- [Kubernetes Documentation](https://kubernetes.io/docs/)
-- [KIND Documentation](https://kind.sigs.k8s.io/)
+- [Red Hat Documentation](https://access.redhat.com/documentation)
 - [VNC Documentation](https://www.realvnc.com/en/connect/docs/) 

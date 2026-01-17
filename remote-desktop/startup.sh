@@ -29,7 +29,7 @@ echo ""
 
 # Configure for root user (default user)
 echo "echo 'Use Ctrl + Shift + C for copying and Ctrl + Shift + V for pasting'" >> /root/.bashrc
-echo "alias kubectl='echo \"kubectl not available here. Solve this question on the specified instance\"'" >> /root/.bashrc
+echo "alias kubectl='echo \"kubectl is not available in this RHCSA environment\"'" >> /root/.bashrc
 
 # Add alias for nmctl -> nmcli (common typo)
 echo "alias nmctl='nmcli'" >> /root/.bashrc

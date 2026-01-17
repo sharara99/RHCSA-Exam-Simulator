@@ -7,14 +7,10 @@ log() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
 }
 
-# Set defaults
-NUMBER_OF_NODES=${1:-1}
+# Set defaults (facilitator calls: prepare-exam-env <nodeCount> <examId>)
 EXAM_ID=${2:-""}
-CLUSTER_NAME=${3:-cluster}
 
 echo "Exam ID: $EXAM_ID"
-echo "Number of nodes: $NUMBER_OF_NODES"
-echo "Cluster name: $CLUSTER_NAME"
 
 #check docker is running
 if ! docker info > /dev/null 2>&1; then
@@ -33,16 +29,7 @@ if ! docker info > /dev/null 2>&1; then
   done
 fi
 
-log "Starting exam environment preparation with $NUMBER_OF_NODES node(s)"
-
-# Validate input
-if ! [[ "$NUMBER_OF_NODES" =~ ^[0-9]+$ ]]; then
-  log "ERROR: Number of nodes must be a positive integer"
-  exit 1
-fi
-
-# Setup kind cluster
-ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null candidate@k8s-api-server "env-setup $NUMBER_OF_NODES $CLUSTER_NAME"
+log "Starting exam environment preparation"
 
 #Pull assets from URL
 curl facilitator:3000/api/v1/exams/$EXAM_ID/assets -o assets.tar.gz
@@ -59,29 +46,10 @@ find /tmp/exam-assets -type f -exec chmod +x {} \;
 
 echo "Exam assets downloaded and prepared successfully" 
 
-export KUBECONFIG=/home/candidate/.kube/kubeconfig
-
 sleep 1
 
-#wait till api-server is ready (with timeout) - OPTIMIZED
-API_CHECK_COUNT=0
-MAX_WAIT=120  # Wait up to 120 seconds (2 minutes)
-while ! kubectl get nodes --insecure-skip-tls-verify > /dev/null 2>&1; do
-  API_CHECK_COUNT=$((API_CHECK_COUNT+1))
-  if [ $API_CHECK_COUNT -gt $MAX_WAIT ]; then
-    log "ERROR: API server not ready after $MAX_WAIT seconds"
-    exit 1
-  fi
-  if [ $((API_CHECK_COUNT % 10)) -eq 0 ]; then
-    log "Waiting for API server to be ready... (${API_CHECK_COUNT}s)"
-  fi
-  sleep 1
-done
-
-echo "API server is ready"
-
 #Run fast setup for speed optimization
-log "Running FAST CKA 2025 setup..."
+log "Running FAST exam setup..."
 if [ -f "/tmp/exam-assets/scripts/setup/fast_setup.sh" ]; then
   bash "/tmp/exam-assets/scripts/setup/fast_setup.sh"
 else

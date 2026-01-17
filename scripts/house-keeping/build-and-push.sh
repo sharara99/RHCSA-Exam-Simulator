@@ -172,9 +172,6 @@ build_and_push "jumphost" "${PROJECT_ROOT}/jumphost"
 # Remote Terminal
 build_and_push "remote-terminal" "${PROJECT_ROOT}/remote-terminal"
 
-# Kubernetes Cluster
-build_and_push "cluster" "${PROJECT_ROOT}/kind-cluster"
-
 # Facilitator
 build_and_push "facilitator" "${PROJECT_ROOT}/facilitator"
 

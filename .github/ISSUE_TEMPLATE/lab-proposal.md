@@ -1,6 +1,6 @@
 ---
 name: "🧪 Lab Request"
-about: Suggest a new lab to be added to the CK-X Simulator
+about: Suggest a new lab to be added to the RHCSA Exam Simulator
 title: "[Lab] <short description of the lab>"
 labels: "lab-request"
 assignees: ''
@@ -21,7 +21,7 @@ What skills or concepts should the user learn or demonstrate?
 <!--
 Who is this lab designed for?
 
-- CKA / CKS / Custom...?
+- RHCSA / Custom...?
 - Beginner, Intermediate, Advanced?
 - Any specific professional roles in mind (e.g. DevOps, SRE, Security Engineer)?
 -->
@@ -33,8 +33,8 @@ List the main topics covered by the lab.
 
 You can include:
 
-- Kubernetes area (e.g., RBAC, Networking, Cluster Maintenance, Security)
-- Concepts or tools used (e.g., Helm, Falco, etcd, NetworkPolicy)
+- RHCSA area (e.g., storage, networking, SELinux, containers, systemd)
+- Concepts or tools used (e.g., LVM, nmcli, firewalld, podman, chronyd)
 - Real-world scenarios or challenges (optional)
 -->
 
@@ -44,7 +44,7 @@ You can include:
 
 - **Estimated Duration**: `<e.g., 45 minutes>`
 - **Difficulty**: `<easy / medium / hard>`
-- **Domain/Category**: `<e.g., Kubernetes / Security>`
+- **Domain/Category**: `<e.g., RHCSA / Storage>`
 - **Total Score**: `<e.g., 100>`
 - **Passing Thresholds**:
   - Low Score: `<e.g., 50>`
@@ -58,10 +58,10 @@ Propose 1–3 example exercises that could be part of the lab.
 
 You can list the title, a short description, and the estimated points.
 
-1. **Create a NetworkPolicy** (20 points)
-   - Restrict traffic to a specific pod based on namespace and labels.
-2. **RBAC for Read-Only Access** (30 points)
-   - Grant a user read-only access to all resources in a namespace.
+1. **Configure a YUM repository** (20 points)
+   - Set up BaseOS and AppStream repos for package installation.
+2. **Create an LVM logical volume** (30 points)
+   - Create a VG and LV with specific size and filesystem.
 -->
 
 ## Additional Notes
@@ -69,5 +69,5 @@ You can list the title, a short description, and the estimated points.
 <!--
 Any extra info, references, or notes to support the lab request.
 
-This can include links to real CKA/CKS questions, documentation, or public repos.
+This can include links to RHCSA documentation, or public repos.
 -->

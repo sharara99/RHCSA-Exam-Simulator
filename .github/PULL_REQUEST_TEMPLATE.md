@@ -1,6 +1,6 @@
 <!-- Title of the PR:
 
-Example: `fix: Update volume mount path in CKAD 001 Q6`
+Example: `fix: Update volume mount path in RHCSA 001 Q6`
 
 -->
 
@@ -30,7 +30,7 @@ Example: "This PR fixes the volume mount path in `sidecar-pod.yaml` to prevent c
 
 <!-- Provide clear, step-by-step instructions for testing this change.
 
-Example: "Run the updated lab CKAD 001, Question 6. The pod should start correctly and nginx logs should be accessible."
+Example: "Run the updated lab RHCSA 001, Question 6. The service should start correctly and the validation should pass."
 
 -->
 
@@ -44,7 +44,7 @@ Feel free to add or remove items depending on what your PR changes.
 
 -->
 
-- [ ] Pod starts without errors  
+- [ ] Services start without errors  
 - [ ] Docker Compose logs are available  
 - [ ] All relevant tests pass  
 - [ ] Documentation is updated (if needed - usually it is)

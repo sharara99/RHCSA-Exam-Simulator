@@ -22,7 +22,7 @@ The `index.html` file serves as the main landing page for the CK-X Simulator. He
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="mobile-web-app-capable" content="yes">
-    <title>CK-X | Kubernetes Certification Simulator</title>
+    <title>RHCSA | Red Hat Certified System Administrator Exam Simulator</title>
     <!-- External Dependencies -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -77,7 +77,7 @@ The `index.html` file serves as the main landing page for the CK-X Simulator. He
 ```html
 <section class="hero-section full-height d-flex align-items-center text-center position-relative">
     <div class="container hero-content">
-        <h1 class="display-4 mb-4">Kubernetes Certification Exam Simulator</h1>
+        <h1 class="display-4 mb-4">Red Hat Certified System Administrator Exam Simulator</h1>
         <p class="lead mb-5">Practice in a realistic environment...</p>
         <a href="#" class="btn btn-light btn-lg start-exam-btn" id="startExamBtn">START EXAM</a>
     </div>

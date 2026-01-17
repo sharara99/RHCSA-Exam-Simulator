@@ -173,24 +173,6 @@ else
   print_warning "Jump host service may not be running properly"
 fi
 
-# Check if the Kubernetes cluster service is running
-if docker compose ps k8s-api-server | grep "Up"; then
-  print_success "Kubernetes cluster is running"
-  
-  # Wait for the KIND cluster to be fully ready
-  print_progress "${CLOCK} Waiting for Kubernetes cluster to be fully initialized..."
-  sleep 30
-  
-  # Check if cluster is accessible
-  if docker compose exec k8s-api-server kind get clusters | grep "kind-cluster"; then
-    print_success "KIND cluster is operational and accessible"
-  else
-    print_warning "KIND cluster may still be initializing"
-  fi
-else
-  print_warning "Kubernetes cluster may not be running properly"
-fi
-
 # ===============================================================================
 # DEPLOYMENT SUMMARY
 # ===============================================================================
@@ -200,7 +182,7 @@ TOTAL_TIME=$(elapsed_time)
 print_header 'DEPLOYMENT SUMMARY'
 echo -e "${STAR} ${GREEN}Deployment completed successfully!${NC}"
 echo -e "${INFO} ${CYAN}Environment:${NC}           Red Hat Exam Simulator (Docker Compose)"
-echo -e "${INFO} ${CYAN}Services deployed:${NC}     5 (remote-desktop, webapp, nginx, jumphost, k8s-api-server)"
+echo -e "${INFO} ${CYAN}Services deployed:${NC}     7 (remote-desktop, webapp, nginx, jumphost, remote-terminal, facilitator, redis)"
 echo -e "${INFO} ${CYAN}Total elapsed time:${NC}    ${YELLOW}${TOTAL_TIME}${NC}"
 
 echo -e "\n${STAR} ${GREEN}Your Red Hat Exam Simulator is ready to use!${NC} ${STAR}\n"
@@ -222,7 +204,7 @@ echo -e "\n${STAR} ${GREEN}Access Simulator here:${NC} ${BOLD}http://${HOST_IP}:
 
 #open browser on host machine
 open http://${HOST_IP}:30080
-echo -e "${INFO} ${GRAY}Note: All other services (VNC, jumphost, K8s) are only accessible internally through the web application.${NC}"
+echo -e "${INFO} ${GRAY}Note: All other services (VNC, jumphost, terminal) are only accessible internally through the web application.${NC}"
 
 # ===============================================================================
 # HELPFUL COMMANDS

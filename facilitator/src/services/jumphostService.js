@@ -226,11 +226,8 @@ async function evaluateExamOnJumphost(examId, questions) {
           // The script is located on the jumphost at the specified path
           const scriptPath = `/tmp/exam-assets/scripts/validation/${verificationScript}`;
           
-          // Add KUBECONFIG environment variable to ensure all verifications use the correct kube config
-          const commandWithKubeconfig = `export KUBECONFIG=/home/candidate/.kube/kubeconfig && ${scriptPath}`;
-          
-          logger.info(`Executing verification script: ${scriptPath} with KUBECONFIG set`);
-          const result = await sshService.executeCommand(commandWithKubeconfig);
+          logger.info(`Executing verification script: ${scriptPath}`);
+          const result = await sshService.executeCommand(scriptPath);
           
           // Determine if the verification passed
           const isValid = result.exitCode === 0;

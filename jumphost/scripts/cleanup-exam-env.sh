@@ -16,8 +16,6 @@ log() {
 }
 
 log "Starting exam environment cleanup"
-log "Cleaning up cluster $CLUSTER_NAME"
-ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null candidate@k8s-api-server "env-cleanup $CLUSTER_NAME"
 
 #cleanup docker env
 log "Cleaning up docker environment"
