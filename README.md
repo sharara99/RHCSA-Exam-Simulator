@@ -16,12 +16,6 @@ A powerful Red Hat certification practice environment that provides a realistic 
 - **Timed exam mode** with real exam-like conditions and countdown timer 
 
 
-## 
-
-Watch live demo video showcasing the Red Hat Exam Simulator in action:
-
-[![Red Hat Exam Simulator Demo](https://img.youtube.com/vi/EQVGhF8x7R4/0.jpg)](https://www.youtube.com/watch?v=EQVGhF8x7R4&ab_channel=NishanB)
-
 ## Installation
 
 #### Linux & macOS
