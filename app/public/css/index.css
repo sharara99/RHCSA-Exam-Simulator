@@ -1,15 +1,15 @@
 :root {
-    --primary-color: #4f46e5;
-    --primary-dark: #3730a3;
-    --primary-light: #818cf8;
-    --dark-color: #111827;
-    --light-color: #f9fafb;
-    --gray-color: #6b7280;
+    --primary-color: #EE0000; /* Red Hat Red */
+    --primary-dark: #CC0000;
+    --primary-light: #FF3333;
+    --dark-color: #000000; /* Black */
+    --light-color: #FFFFFF; /* White */
+    --gray-color: #666666;
     --success-color: #10b981;
     --border-radius: 12px;
     --box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --font-sans: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --font-sans: 'Red Hat Display', 'Red Hat Text', 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 body {
@@ -65,7 +65,7 @@ body {
 /* Hero Section */
 .hero-section {
     background-color: var(--primary-color);
-    background-image: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+    background-image: linear-gradient(135deg, #000000 0%, var(--primary-color) 50%, #000000 100%);
     color: white;
     padding: 8rem 0;
     position: relative;
@@ -208,7 +208,7 @@ body {
     width: 64px;
     height: 64px;
     margin-bottom: 1.25rem;
-    background-color: #eef4ff;
+    background-color: #ffe5e5; /* Light red background */
     border-radius: 12px;
     transition: var(--transition);
 }
@@ -431,8 +431,8 @@ body {
 }
 
 .alert-info {
-    background-color: #eef4ff;
-    border-color: #d1e0ff;
+    background-color: #ffe5e5;
+    border-color: #ffcccc;
     color: var(--primary-dark);
 }
 
@@ -510,7 +510,7 @@ body {
 .custom-progress {
     width: 0%;
     height: 100%;
-    background: #4CAF50;
+    background: var(--primary-color); /* Red Hat Red */
     transition: width 0.3s ease;
 }
 

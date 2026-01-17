@@ -1,8 +1,9 @@
 # Enable BuildKit for faster builds and parallel processing
 # Note: All services are configured with 'pull: false' to build from local files only.
 # Docker Compose will automatically detect changes in local files and rebuild when needed.
-# To force a rebuild every time, use: docker compose up --build
-# Or rebuild specific services: docker compose build [service-name]
+# To force a rebuild from scratch every time (no cache), use: docker compose build --no-cache
+# To rebuild and start: docker compose up --build --force-recreate
+# Or rebuild specific services: docker compose build --no-cache [service-name]
 x-buildkit: &buildkit
   BUILDKIT_INLINE_CACHE: 1
   DOCKER_BUILDKIT: 1

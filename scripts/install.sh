@@ -20,8 +20,8 @@ print_header() {
     echo "░╚════╝░╚═╝░░╚═╝░░░░░░╚═╝░░╚═╝  ╚═════╝░╚═╝╚═╝░░░░░╚═╝░╚═════╝░╚══════╝╚═╝░░╚═╝░░░╚═╝░░░░╚════╝░╚═╝░░╚═╝"
     echo -e "${NC}"
     echo -e "${CYAN}==============================================================${NC}"
-    echo -e "${CYAN}CK-X Simulator: Kubernetes Certification Exam Simulator${NC}"
-    echo -e "${CYAN}Practice in a realistic environment for CKA, CKAD, and more${NC}"
+    echo -e "${CYAN}Red Hat Exam Simulator: Red Hat Certification Exam Simulator${NC}"
+    echo -e "${CYAN}Practice in a realistic environment for RHCSA, RHCE, and more${NC}"
     echo -e "${CYAN}==============================================================${NC}"
     echo -e "${CYAN} Facing any issues? Please report at: https://github.com/nishanb/CK-X/issues${NC}"
     echo
@@ -198,7 +198,7 @@ main() {
     echo -e "${GREEN}✓ Docker images pulled successfully${NC}"
     
     # Start services
-    echo -e "${YELLOW}Starting CK-X services...${NC}"
+    echo -e "${YELLOW}Starting Red Hat Exam Simulator services...${NC}"
     docker compose up -d
     echo -e "${GREEN}✓ Services started${NC}"
     
@@ -210,7 +210,7 @@ main() {
     
     echo -e "\n${BLUE}Installation Complete!${NC}"
     echo -e "${CYAN}==============================================================${NC}"
-    echo -e "${GREEN}✓ CK-X Simulator has been installed successfully${NC}"
+    echo -e "${GREEN}✓ Red Hat Exam Simulator has been installed successfully${NC}"
     
     # Wait a bit for the service to be fully ready
     sleep 5
@@ -220,15 +220,15 @@ main() {
     
     echo -e "\n${BLUE}Useful Commands${NC}"
     echo -e "${CYAN}==============================================================${NC}"
-    echo -e "${YELLOW}CK-X Simulator has been installed in:${NC} ${GREEN}$(pwd)${NC}, run all below commands from this directory"
-    echo -e "${YELLOW}To stop CK-X  ${GREEN}docker compose down --volumes --remove-orphans --rmi all${NC}"
-    echo -e "${YELLOW}To Restart CK-X:${NC} ${GREEN}docker compose restart${NC}"
+    echo -e "${YELLOW}Red Hat Exam Simulator has been installed in:${NC} ${GREEN}$(pwd)${NC}, run all below commands from this directory"
+    echo -e "${YELLOW}To stop Red Hat Exam Simulator:  ${GREEN}docker compose down --volumes --remove-orphans --rmi all${NC}"
+    echo -e "${YELLOW}To Restart Red Hat Exam Simulator:${NC} ${GREEN}docker compose restart${NC}"
     echo -e "${YELLOW}To clean up all containers and images:${NC} ${GREEN}docker system prune -a${NC}"
-    echo -e "${YELLOW}To remove only CK-X images:${NC} ${GREEN}docker compose down --rmi all${NC}"
-    echo -e "${YELLOW}To access CK-X Simulator:${NC} ${GREEN}https://play.sailor.sh/${NC}"
-    echo -e "${YELLOW}To access CK-X Simulator locally use:${NC} ${GREEN}http://localhost:30080/${NC}"
+    echo -e "${YELLOW}To remove only Red Hat Exam Simulator images:${NC} ${GREEN}docker compose down --rmi all${NC}"
+    echo -e "${YELLOW}To access Red Hat Exam Simulator:${NC} ${GREEN}https://play.sailor.sh/${NC}"
+    echo -e "${YELLOW}To access Red Hat Exam Simulator locally use:${NC} ${GREEN}http://localhost:30080/${NC}"
     echo
-    echo -e "${CYAN}Thank you for installing CK-X Simulator!${NC}"
+    echo -e "${CYAN}Thank you for installing Red Hat Exam Simulator!${NC}"
 }
 
 # Run main function

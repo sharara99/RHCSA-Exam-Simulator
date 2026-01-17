@@ -1,5 +1,5 @@
 /**
- * Feedback module for CK-X Simulator
+ * Feedback module for Red Hat Exam Simulator
  * Handles displaying feedback prompts and notifications
  */
 

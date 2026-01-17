@@ -119,8 +119,13 @@ mkdir -p /home/candidate/.kube
 k3d kubeconfig write cluster --kubeconfig-switch-context=false
 # Update the server address to use k8s-api-server
 sed -i 's|server: https://.*|server: https://k8s-api-server:6445|g' /home/candidate/.kube/config
+# Remove certificate-authority-data and certificate-authority to avoid conflict with insecure-skip-tls-verify
+sed -i '/certificate-authority-data:/d' /home/candidate/.kube/config
+sed -i '/certificate-authority:/d' /home/candidate/.kube/config
+# Add insecure-skip-tls-verify for certificate issues
+sed -i '/server: https:\/\/k8s-api-server:6445/a\    insecure-skip-tls-verify: true' /home/candidate/.kube/config
 cp /home/candidate/.kube/config /home/candidate/.kube/kubeconfig
-echo "$(date '+%Y-%m-%d %H:%M:%S') | ✅ Kubeconfig copied and configured"
+echo "$(date '+%Y-%m-%d %H:%M:%S') | ✅ Kubeconfig copied and configured with insecure-skip-tls-verify"
 
 # ===============================================================================
 #   Setup CKA Exam Resources

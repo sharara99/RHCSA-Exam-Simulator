@@ -1,0 +1,587 @@
+{
+  "questions": [
+    {
+      "id": "1",
+      "namespace": "default",
+      "machineHostname": "node1",
+      "question": "Configure TCP/IP and Hostname as following.\n\nHostname: node1.domain.example.com\nIP Address: 192.168.71.240\nNetmask: 255.255.255.0\nGateway: 192.168.71.2\nDNS: 192.168.71.2",
+      "concepts": ["networking", "hostname", "nmcli", "nmtui"],
+      "verification": [
+        {
+          "id": "1",
+          "description": "Hostname is configured correctly",
+          "verificationScriptFile": "q1_s1_validate_hostname.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "2",
+          "description": "IP address is configured correctly",
+          "verificationScriptFile": "q1_s2_validate_ip.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "3",
+          "description": "Gateway and DNS are configured correctly",
+          "verificationScriptFile": "q1_s3_validate_gateway_dns.sh",
+          "expectedOutput": "0",
+          "weightage": 1
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "namespace": "default",
+      "machineHostname": "node1",
+      "question": "Configure your Red Hat VM repository. The packages distribution is available via YUM:\n\n1. BaseOS url: http://content.example.com/rhel9/x86_64/dvd/BaseOS\n2. AppStream url: http://content.example.com/rhel9/x86_64/dvd/AppStream",
+      "concepts": ["yum", "repository", "package management"],
+      "verification": [
+        {
+          "id": "1",
+          "description": "BaseOS repository is configured",
+          "verificationScriptFile": "q2_s1_validate_baseos.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "2",
+          "description": "AppStream repository is configured",
+          "verificationScriptFile": "q2_s2_validate_appstream.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "3",
+          "description": "Repositories are accessible",
+          "verificationScriptFile": "q2_s3_validate_repo_access.sh",
+          "expectedOutput": "0",
+          "weightage": 1
+        }
+      ]
+    },
+    {
+      "id": "3",
+      "namespace": "default",
+      "machineHostname": "node1",
+      "question": "Debug SELinux:\n\nWeb server running on non-standard port \"82\" is having issues serving content. Debug and fix the issues.\n\n- The web server can serve all the existing HTML files from `/var/www/html`\n- Don't make any changes to these files\n- Web service should automatically start at boot time",
+      "concepts": ["selinux", "firewall", "httpd", "systemd"],
+      "verification": [
+        {
+          "id": "1",
+          "description": "HTTPD service is running",
+          "verificationScriptFile": "q3_s1_validate_httpd_running.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "2",
+          "description": "HTTPD service is enabled at boot",
+          "verificationScriptFile": "q3_s2_validate_httpd_enabled.sh",
+          "expectedOutput": "0",
+          "weightage": 1
+        },
+        {
+          "id": "3",
+          "description": "Port 82 is accessible via firewall",
+          "verificationScriptFile": "q3_s3_validate_firewall_port.sh",
+          "expectedOutput": "0",
+          "weightage": 1
+        },
+        {
+          "id": "4",
+          "description": "SELinux allows port 82 for HTTP",
+          "verificationScriptFile": "q3_s4_validate_selinux_port.sh",
+          "expectedOutput": "0",
+          "weightage": 1
+        }
+      ]
+    },
+    {
+      "id": "4",
+      "namespace": "default",
+      "machineHostname": "node1",
+      "question": "Create the following users, groups, and group membership:\n\n- A group named `adminuser`\n- A user \"harry\" who belongs to `adminuser` as a secondary group\n- A user \"natasha\" who belongs to `adminuser` as a secondary group\n- A user \"sarah\" who doesn't have access to an interactive shell and who is not a member of `adminuser` group\n- All users should have the password of \"centtered\"",
+      "concepts": ["users", "groups", "useradd", "groupadd", "passwd"],
+      "verification": [
+        {
+          "id": "1",
+          "description": "Group adminuser exists",
+          "verificationScriptFile": "q4_s1_validate_group.sh",
+          "expectedOutput": "0",
+          "weightage": 1
+        },
+        {
+          "id": "2",
+          "description": "User harry exists and belongs to adminuser",
+          "verificationScriptFile": "q4_s2_validate_harry.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "3",
+          "description": "User natasha exists and belongs to adminuser",
+          "verificationScriptFile": "q4_s3_validate_natasha.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "4",
+          "description": "User sarah exists with no interactive shell and not in adminuser",
+          "verificationScriptFile": "q4_s4_validate_sarah.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        }
+      ]
+    },
+    {
+      "id": "5",
+      "namespace": "default",
+      "machineHostname": "node1",
+      "question": "Cron job:\n\n- Configure a cron job for the user \"natasha\" that runs daily every 14:23 minute local time executes \"Ex200 is processing\" with logger\n- Configure a cron job for the user \"natasha\" that runs daily every 1-minute local time executes \"Ex200 is processing\" with logger",
+      "concepts": ["cron", "crontab", "logger", "systemd"],
+      "verification": [
+        {
+          "id": "1",
+          "description": "Cron job at 14:23 is configured",
+          "verificationScriptFile": "q5_s1_validate_cron_1423.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "2",
+          "description": "Cron job every minute is configured",
+          "verificationScriptFile": "q5_s2_validate_cron_minute.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        }
+      ]
+    },
+    {
+      "id": "6",
+      "namespace": "default",
+      "machineHostname": "node1",
+      "question": "Create a collaborative directory:\n\n- Create a directory `/home/admin` with the following characteristics\n- Group ownership of `/home/admin` is `adminuser`\n- The directory should be readable, writable, and accessible to member of `adminuser`, but not any other user\n- Files created in `/home/admin` automatically have group ownership set to the `adminuser` group",
+      "concepts": ["directories", "permissions", "chmod", "chgrp", "setgid"],
+      "verification": [
+        {
+          "id": "1",
+          "description": "Directory /home/admin exists with correct group ownership",
+          "verificationScriptFile": "q6_s1_validate_directory.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "2",
+          "description": "Directory has correct permissions (2770)",
+          "verificationScriptFile": "q6_s2_validate_permissions.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "3",
+          "description": "New files get adminuser group ownership",
+          "verificationScriptFile": "q6_s3_validate_setgid.sh",
+          "expectedOutput": "0",
+          "weightage": 1
+        }
+      ]
+    },
+    {
+      "id": "7",
+      "namespace": "default",
+      "machineHostname": "node1",
+      "question": "Create user 'alex' with 3456 uid and set password to \"centtered\"",
+      "concepts": ["users", "useradd", "uid", "passwd"],
+      "verification": [
+        {
+          "id": "1",
+          "description": "User alex exists with UID 3456",
+          "verificationScriptFile": "q7_s1_validate_alex.sh",
+          "expectedOutput": "0",
+          "weightage": 3
+        }
+      ]
+    },
+    {
+      "id": "8",
+      "namespace": "default",
+      "machineHostname": "node1",
+      "question": "Locate all the files owned by user \"natasha\" and copy them under `/root/locatedfiles`",
+      "concepts": ["find", "file ownership", "cp"],
+      "verification": [
+        {
+          "id": "1",
+          "description": "Files owned by natasha are copied to /root/locatedfiles",
+          "verificationScriptFile": "q8_s1_validate_files_copied.sh",
+          "expectedOutput": "0",
+          "weightage": 3
+        }
+      ]
+    },
+    {
+      "id": "9",
+      "namespace": "default",
+      "machineHostname": "node1",
+      "question": "Find a string 'strato' from `/usr/share/dict/words` and put it into `/root/lines` file",
+      "concepts": ["grep", "file operations", "redirection"],
+      "verification": [
+        {
+          "id": "1",
+          "description": "String 'strato' is found and saved to /root/lines",
+          "verificationScriptFile": "q9_s1_validate_strato.sh",
+          "expectedOutput": "0",
+          "weightage": 3
+        }
+      ]
+    },
+    {
+      "id": "10",
+      "namespace": "default",
+      "machineHostname": "node1",
+      "question": "Configure AutoFS:\n\nConfigure autofs to automount the home directories of remote users. NFS export /home on your system. In system have preconfigured for remoteuser20\n\nNote: the following requirements automount remoteuser20 home directory:\n- remoteuser20 is exported on classroom.example.com(192.168.71.254):/home/remoteuser20\n- remoteuser20 home directory should be automounted locally beneath /home as /home/remoteuser20\n- home directories must be writable by their users",
+      "concepts": ["autofs", "nfs", "automount", "systemd"],
+      "verification": [
+        {
+          "id": "1",
+          "description": "AutoFS service is running and enabled",
+          "verificationScriptFile": "q10_s1_validate_autofs_service.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "2",
+          "description": "AutoFS configuration files are correct",
+          "verificationScriptFile": "q10_s2_validate_autofs_config.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "3",
+          "description": "Remote user home directory is automounted",
+          "verificationScriptFile": "q10_s3_validate_automount.sh",
+          "expectedOutput": "0",
+          "weightage": 1
+        }
+      ]
+    },
+    {
+      "id": "11",
+      "namespace": "default",
+      "machineHostname": "node1",
+      "question": "Create an archive:\n\na. Create an archive `/root/backup.tar.bz2` of `/usr/local` directory and compress it with bzip2\n\nb. Create an archive `/root/myetcbackup.tgz` of `/etc` directory",
+      "concepts": ["tar", "compression", "bzip2", "gzip"],
+      "verification": [
+        {
+          "id": "1",
+          "description": "Archive backup.tar.bz2 exists and contains /usr/local",
+          "verificationScriptFile": "q11_s1_validate_backup_tar_bz2.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "2",
+          "description": "Archive myetcbackup.tgz exists and contains /etc",
+          "verificationScriptFile": "q11_s2_validate_etc_backup.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        }
+      ]
+    },
+    {
+      "id": "12",
+      "namespace": "default",
+      "machineHostname": "node1",
+      "question": "Create a container for alth user:\n\n- Use this link: http://domain.exam.com/rhel9/Containerfile build image named monitor\n- Don't change anything in Container file",
+      "concepts": ["podman", "containers", "containerfile", "build"],
+      "verification": [
+        {
+          "id": "1",
+          "description": "Container image 'monitor' exists",
+          "verificationScriptFile": "q12_s1_validate_monitor_image.sh",
+          "expectedOutput": "0",
+          "weightage": 3
+        }
+      ]
+    },
+    {
+      "id": "13",
+      "namespace": "default",
+      "machineHostname": "node1",
+      "question": "Create a rootless container:\n\n- Create a container name asciipdf\n- Use monitor image for asciipdf which you previously created\n- Create a system service named container-asciipdf for alth user only\n- Service will automatically started across reboot\n- Local directory /opt/files attached to container directory /opt/incoming\n- Local directory /opt/processed attached to container directory /opt/outgoing\n- If the service work properly, when you place any plain text file in /opt/files, then this file automatically converted into pdf and also placed under /opt/processed",
+      "concepts": ["podman", "rootless containers", "systemd", "user services", "volumes"],
+      "verification": [
+        {
+          "id": "1",
+          "description": "Container asciipdf exists and is running",
+          "verificationScriptFile": "q13_s1_validate_container.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "2",
+          "description": "Systemd user service is configured and enabled",
+          "verificationScriptFile": "q13_s2_validate_service.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "3",
+          "description": "Volume mounts are configured correctly",
+          "verificationScriptFile": "q13_s3_validate_volumes.sh",
+          "expectedOutput": "0",
+          "weightage": 1
+        }
+      ]
+    },
+    {
+      "id": "14",
+      "namespace": "default",
+      "machineHostname": "node1",
+      "question": "Make a simple script:\n\n- Create myscript file to locate all files under /usr/ of less than 10MB with permissions user identifier (SGID)\n- Save all these files in list /root/script\n- Copy script file in /usr/local/bin\n- Make sure that the script run at any location",
+      "concepts": ["bash scripting", "find", "permissions", "sgid", "path"],
+      "verification": [
+        {
+          "id": "1",
+          "description": "Script exists in /usr/local/bin/myscript.sh",
+          "verificationScriptFile": "q14_s1_validate_script_location.sh",
+          "expectedOutput": "0",
+          "weightage": 1
+        },
+        {
+          "id": "2",
+          "description": "Script is executable and has correct permissions",
+          "verificationScriptFile": "q14_s2_validate_script_permissions.sh",
+          "expectedOutput": "0",
+          "weightage": 1
+        },
+        {
+          "id": "3",
+          "description": "Script can be run from any location",
+          "verificationScriptFile": "q14_s3_validate_script_execution.sh",
+          "expectedOutput": "0",
+          "weightage": 1
+        },
+        {
+          "id": "4",
+          "description": "Script creates /root/script with correct content",
+          "verificationScriptFile": "q14_s4_validate_script_output.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        }
+      ]
+    },
+    {
+      "id": "15",
+      "namespace": "default",
+      "machineHostname": "node1",
+      "question": "Synchronize the time of your system from \"3.asia.ntp.org\"",
+      "concepts": ["chrony", "ntp", "time synchronization", "systemd"],
+      "verification": [
+        {
+          "id": "1",
+          "description": "Chronyd service is running and enabled",
+          "verificationScriptFile": "q15_s1_validate_chronyd_service.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "2",
+          "description": "NTP server 3.asia.ntp.org is configured",
+          "verificationScriptFile": "q15_s2_validate_ntp_server.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "3",
+          "description": "System is synchronized with NTP server",
+          "verificationScriptFile": "q15_s3_validate_time_sync.sh",
+          "expectedOutput": "0",
+          "weightage": 1
+        }
+      ]
+    },
+    {
+      "id": "16",
+      "namespace": "default",
+      "machineHostname": "node1",
+      "question": "Set the permissions:\n\na. All the new creating files for user \"natasha\" as -r-- --- --- as default permission\nb. All the new creating directories for user \"natasha\" as dr-x --- --- as default permission\nc. Set the password expire date: The password for all new users in 1st server should expires after 20 days\nd. Assign sudo Privilege: Assign the sudo Privilege for Group \"adminuser\" and Group members can administrate without any password",
+      "concepts": ["umask", "permissions", "password policy", "sudo", "login.defs"],
+      "verification": [
+        {
+          "id": "1",
+          "description": "Umask is set for natasha user",
+          "verificationScriptFile": "q16_s1_validate_umask.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "2",
+          "description": "Password expiration is set to 20 days",
+          "verificationScriptFile": "q16_s2_validate_password_expiry.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "3",
+          "description": "Sudo privileges are configured for adminuser group",
+          "verificationScriptFile": "q16_s3_validate_sudo.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        }
+      ]
+    },
+    {
+      "id": "17",
+      "namespace": "default",
+      "machineHostname": "node2",
+      "question": "Reset root password and make it \"centtered\". You should take care to enter the GRUB mode of the Rescue part and not from the default part",
+      "concepts": ["grub", "rescue mode", "password reset", "chroot"],
+      "verification": [
+        {
+          "id": "1",
+          "description": "Root password is set to centtered",
+          "verificationScriptFile": "q17_s1_validate_root_password.sh",
+          "expectedOutput": "0",
+          "weightage": 5
+        }
+      ]
+    },
+    {
+      "id": "18",
+      "namespace": "default",
+      "machineHostname": "node2",
+      "question": "Configure your Red Hat VM repository. The packages distribution is available via YUM:\n\n1. BaseOS url: http://domain10.example.com/rhel9/x86_64/dvd/BaseOS\n2. AppStream url: http://domain10.example.com/rhel9/x86_64/dvd/AppStream",
+      "concepts": ["yum", "repository", "package management"],
+      "verification": [
+        {
+          "id": "1",
+          "description": "BaseOS repository is configured",
+          "verificationScriptFile": "q18_s1_validate_baseos.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "2",
+          "description": "AppStream repository is configured",
+          "verificationScriptFile": "q18_s2_validate_appstream.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "3",
+          "description": "Repositories are accessible",
+          "verificationScriptFile": "q18_s3_validate_repo_access.sh",
+          "expectedOutput": "0",
+          "weightage": 1
+        }
+      ]
+    },
+    {
+      "id": "19",
+      "namespace": "default",
+      "machineHostname": "node2",
+      "question": "Resize the logical volume name lv to 300 MB. Make sure in lv volume have some data, data should not be affected by resizing. Do not remove or modify /etc/fstab",
+      "concepts": ["lvm", "logical volume", "lvextend", "resize2fs"],
+      "verification": [
+        {
+          "id": "1",
+          "description": "Logical volume lv is resized to 300 MB",
+          "verificationScriptFile": "q19_s1_validate_lv_size.sh",
+          "expectedOutput": "0",
+          "weightage": 3
+        },
+        {
+          "id": "2",
+          "description": "Filesystem is resized and data is intact",
+          "verificationScriptFile": "q19_s2_validate_filesystem.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        }
+      ]
+    },
+    {
+      "id": "20",
+      "namespace": "default",
+      "machineHostname": "node2",
+      "question": "Add a swap partition of 715MB and mount it permanently",
+      "concepts": ["swap", "fdisk", "partitions", "fstab", "mkswap"],
+      "verification": [
+        {
+          "id": "1",
+          "description": "Swap partition of 715MB exists",
+          "verificationScriptFile": "q20_s1_validate_swap_partition.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "2",
+          "description": "Swap is active",
+          "verificationScriptFile": "q20_s2_validate_swap_active.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "3",
+          "description": "Swap is configured in /etc/fstab",
+          "verificationScriptFile": "q20_s3_validate_swap_fstab.sh",
+          "expectedOutput": "0",
+          "weightage": 1
+        }
+      ]
+    },
+    {
+      "id": "21",
+      "namespace": "default",
+      "machineHostname": "node2",
+      "question": "Create a Logical Volume:\n\n- Create a logical volume \"database\" by using 50 PEs from the volume group \"datastore\"\n- Consider that each PE size of volume group as \"16MB\"\n- Format with ext3 filesystem and mount permanently under /mnt/database",
+      "concepts": ["lvm", "logical volume", "volume group", "physical volume", "ext3", "fstab"],
+      "verification": [
+        {
+          "id": "1",
+          "description": "Logical volume database exists with 50 PEs",
+          "verificationScriptFile": "q21_s1_validate_lv_database.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "2",
+          "description": "Logical volume is formatted with ext3",
+          "verificationScriptFile": "q21_s2_validate_ext3.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "3",
+          "description": "Logical volume is mounted at /mnt/database",
+          "verificationScriptFile": "q21_s3_validate_mount.sh",
+          "expectedOutput": "0",
+          "weightage": 1
+        }
+      ]
+    },
+    {
+      "id": "22",
+      "namespace": "default",
+      "machineHostname": "node2",
+      "question": "Configure recommended tuned profile",
+      "concepts": ["tuned", "performance", "systemd"],
+      "verification": [
+        {
+          "id": "1",
+          "description": "Tuned service is running and enabled",
+          "verificationScriptFile": "q22_s1_validate_tuned_service.sh",
+          "expectedOutput": "0",
+          "weightage": 2
+        },
+        {
+          "id": "2",
+          "description": "Recommended tuned profile is active",
+          "verificationScriptFile": "q22_s2_validate_tuned_profile.sh",
+          "expectedOutput": "0",
+          "weightage": 3
+        }
+      ]
+    }
+  ]
+}

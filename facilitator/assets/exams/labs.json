@@ -1,14 +1,14 @@
 {
     "labs": [
       {
-        "id": "cka-2025-real",
-        "assetPath": "assets/exams/custom/cka-2025-real",
-        "name": "CKA 2025 Real Exam Questions",
-        "category": "CKA",
-        "description": "Real CKA 2025 exam questions covering kubeadm setup, CNI installation, Ingress, Gateway API, HPA, StorageClasses, PriorityClasses, and advanced Kubernetes administration tasks.",
+        "id": "rhcsa-001",
+        "assetPath": "assets/exams/rhcsa/001",
+        "name": "RHCSA RHEL 9 Practice Exam",
+        "category": "RHCSA",
+        "description": "Red Hat Certified System Administrator (RHCSA) practice exam covering RHEL 9 topics including networking, user management, SELinux, storage management, containers, and system administration tasks.",
         "warmUpTimeInSeconds": 120,
         "difficulty": "Hard",
-        "examDurationInMinutes": 120
+        "examDurationInMinutes": 180
       }
     ]
-  } 
+  }

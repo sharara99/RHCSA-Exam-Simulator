@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data && data.id) {
                     // Store current exam data in localStorage for the View Results functionality
                     localStorage.setItem('currentExamData', JSON.stringify(data));
+                    localStorage.setItem('currentExamId', data.id);
                     
                     // Show View Results button only if status is EVALUATING or EVALUATED
                     if (data.status === 'EVALUATING' || data.status === 'EVALUATED') {
@@ -50,19 +51,25 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                     
+                    // If exam is READY, redirect immediately to exam page
+                    if (data.status === 'READY') {
+                        console.log('Exam is READY, redirecting to exam page');
+                        // Ensure exam ID is stored
+                        localStorage.setItem('currentExamId', data.id);
+                        window.location.href = `/exam.html?id=${data.id}`;
+                        return;
+                    }
+                    
                     // If exam is in PREPARING state, show loading overlay and start polling
-                    if (data.status === 'PREPARING') {
-                        console.log('Exam is in PREPARING state, showing loading overlay');
+                    if (data.status === 'PREPARING' || data.status === 'PREPARATION_FAILED') {
+                        console.log('Exam is in', data.status, 'state, showing loading overlay');
+                        // Ensure exam ID is stored for refresh scenarios
+                        localStorage.setItem('currentExamId', data.id);
                         showLoadingOverlay();
                         updateLoadingMessage('Preparing lab environment...');
                         updateExamInfo(data.info?.name || 'Unknown Exam');
-                        // Start polling for status
-                        pollExamStatus(data.id).then(statusData => {
-                            if (statusData.status === 'READY') {
-                                // Redirect to exam page when ready
-                                window.location.href = `/exam.html?id=${data.id}`;
-                            }
-                        });
+                        // Start polling for status - redirect is handled inside pollExamStatus
+                        pollExamStatus(data.id);
                     }
                 }
             })
@@ -280,13 +287,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Get unique categories
         const categories = [...new Set(labs.map(lab => lab.category))];
         
-        // If CKA is available, select it by default (prioritize CKA 2025 questions)
-        if (categories.includes('CKA')) {
-            examCategorySelect.value = 'CKA';
-            filterLabsByCategory('CKA');
-        } else if (categories.includes('CKAD')) {
-            examCategorySelect.value = 'CKAD';
-            filterLabsByCategory('CKAD');
+        // If RHCSA is available, select it by default (prioritize RHCSA exams)
+        if (categories.includes('RHCSA')) {
+            examCategorySelect.value = 'RHCSA';
+            filterLabsByCategory('RHCSA');
+        } else if (categories.includes('RHCE')) {
+            examCategorySelect.value = 'RHCE';
+            filterLabsByCategory('RHCE');
         } else if (categories.length > 0) {
             examCategorySelect.value = categories[0];
             filterLabsByCategory(categories[0]);
@@ -311,18 +318,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // Enable the lab name select
         examNameSelect.disabled = false;
         
-        // If there are labs in this category, prioritize 2025 exam, then select the first one
+        // If there are labs in this category, select the first one
         if (filteredLabs.length > 0) {
-            // Look for 2025 exam first
-            const exam2025 = filteredLabs.find(lab => lab.id === 'cka-2025-real');
-            if (exam2025) {
-                examNameSelect.value = exam2025.id;
-                updateLabDescription(exam2025);
-            } else {
-                // If no 2025 exam, select the first one
-                examNameSelect.value = filteredLabs[0].id;
-                updateLabDescription(filteredLabs[0]);
-            }
+            // Select the first available lab
+            examNameSelect.value = filteredLabs[0].id;
+            updateLabDescription(filteredLabs[0]);
         } else {
             examDescription.textContent = 'No labs available for this category.';
             startSelectedExamBtn.disabled = true;
@@ -422,13 +422,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 const warmUpTime = data.warmUpTimeInSeconds || 30;
                 updateLoadingMessage(`Preparing your lab environment (${warmUpTime}s estimated)`);
                 
-                // Poll for exam status until it's ready
+                // Poll for exam status until it's ready - redirect is handled inside pollExamStatus
                 return pollExamStatus(data.id);
             })
             .then(() => {
-                // Redirect to the lab page after status is READY
-                const examId = localStorage.getItem('currentExamId');
-                window.location.href = `/exam.html?id=${examId}`;
+                // Redirect already happened in pollExamStatus, but keep this as fallback
+                const examId = localStorage.getItem('currentExamId') || data.id;
+                if (examId) {
+                    window.location.href = `/exam.html?id=${examId}`;
+                }
             })
             .catch(error => {
                 console.error('Error starting lab:', error);
@@ -462,10 +464,29 @@ document.addEventListener('DOMContentLoaded', function() {
     async function pollExamStatus(examId) {
         const startTime = Date.now();
         const pollInterval = 1000; // Poll every 1 second
+        const maxWaitTime = 10 * 60 * 1000; // Maximum 10 minutes
+        const retryAfterFailedTime = 3 * 60 * 1000; // Retry after 3 minutes if failed
+        let firstFailedTime = null;
+        
+        // Check if we've already refreshed once (to prevent infinite refresh loop)
+        const refreshKey = `exam_refresh_${examId}`;
+        const hasRefreshed = sessionStorage.getItem(refreshKey) === 'true';
         
         return new Promise((resolve, reject) => {
             const poll = async () => {
                 try {
+                    const elapsedTime = Date.now() - startTime;
+                    
+                    // Check if we've exceeded maximum wait time
+                    if (elapsedTime > maxWaitTime) {
+                        updateLoadingMessage('Preparation is taking longer than expected. Please refresh the page.');
+                        // Auto-refresh after 5 seconds
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 5000);
+                        return;
+                    }
+                    
                     const response = await fetch(`/facilitator/api/v1/exams/${examId}/status`);
                     const data = await response.json();
                     
@@ -476,14 +497,89 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Set progress to 100% when ready
                         updateProgressBar(100);
                         updateLoadingMessage('Lab environment is ready! Redirecting...');
-                        // Wait a moment for the user to see the 100% progress
-                        setTimeout(() => resolve(data), 1000);
+                        // Wait a moment for the user to see the 100% progress, then redirect
+                        setTimeout(() => {
+                            // Redirect to exam page with the exam ID
+                            window.location.href = `/exam.html?id=${examId}`;
+                            resolve(data);
+                        }, 1000);
                         return;
                     }
                     
+                    // Handle PREPARATION_FAILED status - continue polling but with longer interval
+                    if (data.status === 'PREPARATION_FAILED') {
+                        // Track when we first detected the failure (or use start time if already failed when page loaded)
+                        if (firstFailedTime === null) {
+                            firstFailedTime = Date.now();
+                        }
+                        
+                        const timeSinceFailed = Date.now() - firstFailedTime;
+                        
+                        // If we've been in failed state for more than 3 minutes and haven't refreshed yet, refresh once
+                        if (timeSinceFailed >= retryAfterFailedTime && !hasRefreshed) {
+                            console.log('PREPARATION_FAILED for 3+ minutes, refreshing page once...');
+                            // Mark that we've refreshed to prevent infinite loop
+                            sessionStorage.setItem(refreshKey, 'true');
+                            updateLoadingMessage('Preparation encountered an issue. Refreshing to check status...');
+                            setTimeout(() => {
+                                // Store exam ID in localStorage before reload so it can be used after refresh
+                                localStorage.setItem('currentExamId', examId);
+                                // Reload the page - it will check status and redirect if READY
+                                window.location.reload();
+                            }, 2000);
+                            return;
+                        }
+                        
+                        // If we've already refreshed once and still failed, check if exam is actually ready
+                        if (hasRefreshed && timeSinceFailed >= retryAfterFailedTime) {
+                            // Try to check if exam is actually ready despite the status
+                            // Sometimes the status might be stale but exam is actually ready
+                            console.log('Already refreshed once, checking if exam is actually ready...');
+                            updateLoadingMessage('Checking exam status...');
+                            
+                            // Try to access exam page directly - if it works, redirect
+                            fetch(`/facilitator/api/v1/exams/${examId}/questions`)
+                                .then(response => {
+                                    if (response.ok) {
+                                        // Exam questions are available, try redirecting
+                                        console.log('Exam questions available, redirecting to exam page...');
+                                        updateLoadingMessage('Exam is ready! Redirecting...');
+                                        setTimeout(() => {
+                                            window.location.href = `/exam.html?id=${examId}`;
+                                        }, 1000);
+                                    } else {
+                                        // Still not ready, show error message
+                                        updateLoadingMessage('Exam preparation is taking longer than expected. Please try refreshing manually or contact support.');
+                                    }
+                                })
+                                .catch(() => {
+                                    updateLoadingMessage('Exam preparation is taking longer than expected. Please try refreshing manually or contact support.');
+                                });
+                            return;
+                        }
+                        
+                        // Continue polling with longer interval (5 seconds) when failed
+                        const remainingTime = Math.max(0, retryAfterFailedTime - timeSinceFailed);
+                        const minutesRemaining = Math.ceil(remainingTime / 60000);
+                        updateLoadingMessage(`Preparation in progress. Please wait... (Auto-refresh in ${minutesRemaining} min)`);
+                        updateProgressBar(Math.min((elapsedTime / maxWaitTime) * 100, 95));
+                        setTimeout(poll, 5000); // Poll every 5 seconds when failed
+                        return;
+                    }
+                    
+                    // Reset failed time if status is not failed
+                    if (data.status !== 'PREPARATION_FAILED') {
+                        firstFailedTime = null;
+                    }
+                    
+                    // Reset failed time if status is not failed
+                    if (data.status !== 'PREPARATION_FAILED') {
+                        lastFailedTime = null;
+                    }
+                    
                     // Calculate progress based on warm-up time
-                    const elapsedTime = (Date.now() - startTime) / 1000;
-                    const progress = Math.min((elapsedTime / warmUpTimeInSeconds) * 100, 95);
+                    const elapsedTimeSeconds = elapsedTime / 1000;
+                    const progress = Math.min((elapsedTimeSeconds / warmUpTimeInSeconds) * 100, 95);
                     updateProgressBar(progress);
                     updateLoadingMessage(data.message || 'Preparing lab environment...');
                     
@@ -525,10 +621,10 @@ document.addEventListener('DOMContentLoaded', function() {
             // Store exam ID in localStorage
             localStorage.setItem('currentExamId', data.id);
             
-            // Start polling for status
+            // Start polling for status - redirect is handled inside pollExamStatus when READY
             await pollExamStatus(data.id, data.warmUpTimeInSeconds || 30);
             
-            // Redirect to exam page when ready
+            // Fallback redirect (shouldn't be needed as redirect happens in pollExamStatus)
             window.location.href = `/exam.html?id=${data.id}`;
         } catch (error) {
             console.error('Error starting exam:', error);

@@ -1,4 +1,4 @@
-# PowerShell script for installing CK-X Simulator
+# PowerShell script for installing Red Hat Exam Simulator
 # Requires PowerShell 5.0 or higher
 
 try {
@@ -43,8 +43,8 @@ try {
         Write-ColorOutput "░╚════╝░╚═╝░░╚═╝░░░░░░╚═╝░░╚═╝  ╚═════╝░╚═╝╚═╝░░░░░╚═╝░╚═════╝░╚══════╝╚═╝░░╚═╝░░░╚═╝░░░░╚════╝░╚═╝░░╚═╝" "Blue"
         Write-ColorOutput "`n" "Blue"
         Write-ColorOutput "==============================================================" "Cyan"
-        Write-ColorOutput "CK-X Simulator: Kubernetes Certification Exam Simulator" "Cyan"
-        Write-ColorOutput "Practice in a realistic environment for CKA, CKAD, and more" "Cyan"
+        Write-ColorOutput "Red Hat Exam Simulator: Red Hat Certification Exam Simulator" "Cyan"
+        Write-ColorOutput "Practice in a realistic environment for RHCSA, RHCE, and more" "Cyan"
         Write-ColorOutput "==============================================================" "Cyan"
         Write-ColorOutput " Facing any issues? Please report at: https://github.com/nishanb/CK-X/issues" "Cyan"
         Write-Host ""
@@ -286,7 +286,7 @@ try {
         Write-ColorOutput "✓ Docker images pulled successfully" "Green"
         
         # Start services
-        Write-ColorOutput "Starting CK-X services..." "Yellow"
+        Write-ColorOutput "Starting Red Hat Exam Simulator services..." "Yellow"
         docker compose up -d
         if ($LASTEXITCODE -ne 0) {
             Write-ColorOutput "✗ Failed to start services" "Red"
@@ -319,7 +319,7 @@ try {
         Write-Host ""
         Write-ColorOutput "Installation Complete!" "Blue"
         Write-ColorOutput "==============================================================" "Cyan"
-        Write-ColorOutput "✓ CK-X Simulator has been installed successfully" "Green"
+        Write-ColorOutput "✓ Red Hat Exam Simulator has been installed successfully" "Green"
         
         # Wait a bit for the service to be fully ready
         Start-Sleep -Seconds 5
@@ -330,22 +330,22 @@ try {
         Write-Host ""
         Write-ColorOutput "Useful Commands" "Blue"
         Write-ColorOutput "==============================================================" "Cyan"
-        Write-ColorOutput "CK-X Simulator has been installed in: " -NoNewline
+        Write-ColorOutput "Red Hat Exam Simulator has been installed in: " -NoNewline
         Write-ColorOutput "$(Get-Location), run all below commands from this directory" "Green"
-        Write-ColorOutput "To stop CK-X: " -NoNewline
+        Write-ColorOutput "To stop Red Hat Exam Simulator: " -NoNewline
         Write-ColorOutput "docker compose down --volumes --remove-orphans --rmi all" "Green"
-        Write-ColorOutput "To Restart CK-X: " -NoNewline
+        Write-ColorOutput "To Restart Red Hat Exam Simulator: " -NoNewline
         Write-ColorOutput "docker compose restart" "Green"
         Write-ColorOutput "To clean up all containers and images: " -NoNewline
         Write-ColorOutput "docker system prune -a" "Green"
-        Write-ColorOutput "To remove only CK-X images: " -NoNewline
+        Write-ColorOutput "To remove only Red Hat Exam Simulator images: " -NoNewline
         Write-ColorOutput "docker compose down --rmi all" "Green"
-        Write-ColorOutput "To access CK-X Simulator: " -NoNewline
+        Write-ColorOutput "To access Red Hat Exam Simulator: " -NoNewline
         Write-ColorOutput "https://play.sailor.sh/" "Green"
-        Write-ColorOutput "To access CK-X Simulator locally use: " -NoNewline
+        Write-ColorOutput "To access Red Hat Exam Simulator locally use: " -NoNewline
         Write-ColorOutput "http://localhost:30080/" "Green"
         Write-Host ""
-        Write-ColorOutput "Thank you for installing CK-X Simulator!" "Cyan"
+        Write-ColorOutput "Thank you for installing Red Hat Exam Simulator!" "Cyan"
     }
 
     # Check if running as Administrator
