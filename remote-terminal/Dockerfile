@@ -9,16 +9,24 @@ RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/s
     chmod +x kubectl && \
     mv kubectl /usr/local/bin/
 
-# Create candidate user and set password
+# Set root password
+RUN echo "root:password" | chpasswd
+
+# Create candidate user and set password (kept for compatibility)
 RUN adduser -D candidate && echo "candidate:password" | chpasswd
 
-# Create .kube directory for candidate user
+# Create .kube directory for root user
+RUN mkdir -p /root/.kube && \
+    chmod 755 /root/.kube
+
+# Create .kube directory for candidate user (kept for compatibility)
 RUN mkdir -p /home/candidate/.kube && \
     chown -R candidate:candidate /home/candidate/.kube && \
     chmod 755 /home/candidate/.kube
 
-# Configure SSH for password authentication
+# Configure SSH for password authentication and allow root login
 RUN echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config
+RUN echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
 RUN echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config
 RUN echo "UserKnownHostsFile=/dev/null" >> /etc/ssh/ssh_config
 

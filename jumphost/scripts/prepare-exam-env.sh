@@ -65,11 +65,15 @@ sleep 1
 
 #wait till api-server is ready (with timeout) - OPTIMIZED
 API_CHECK_COUNT=0
+MAX_WAIT=120  # Wait up to 120 seconds (2 minutes)
 while ! kubectl get nodes --insecure-skip-tls-verify > /dev/null 2>&1; do
   API_CHECK_COUNT=$((API_CHECK_COUNT+1))
-  if [ $API_CHECK_COUNT -gt 15 ]; then
-    log "ERROR: API server not ready after 30 seconds"
+  if [ $API_CHECK_COUNT -gt $MAX_WAIT ]; then
+    log "ERROR: API server not ready after $MAX_WAIT seconds"
     exit 1
+  fi
+  if [ $((API_CHECK_COUNT % 10)) -eq 0 ]; then
+    log "Waiting for API server to be ready... (${API_CHECK_COUNT}s)"
   fi
   sleep 1
 done

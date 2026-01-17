@@ -5,7 +5,7 @@
 You are now connected to the exam environment terminal.
 
 - Use this terminal to complete the exam tasks
-- All commands are executed as the 'candidate' user
+- All commands are executed as the 'root' user
 - Your work is automatically saved and evaluated
 
 IMPORTANT: Do not attempt to modify system files or bypass restrictions.

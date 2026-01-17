@@ -19,7 +19,7 @@ const VNC_PASSWORD = process.env.VNC_PASSWORD || 'bakku-the-wizard'; // Default 
 // SSH service configuration
 const SSH_HOST = process.env.SSH_HOST || 'remote-terminal'; // Use remote-terminal service
 const SSH_PORT = process.env.SSH_PORT || 22;
-const SSH_USER = process.env.SSH_USER || 'candidate';
+const SSH_USER = process.env.SSH_USER || 'root';
 const SSH_PASSWORD = process.env.SSH_PASSWORD || 'password';
 
 const app = express();

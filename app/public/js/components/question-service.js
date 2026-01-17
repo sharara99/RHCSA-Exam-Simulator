@@ -432,7 +432,7 @@ function generateQuestionContent(question) {
                 <div class="question-header">
                     
                     <div class="mb-3">
-                        <strong>Solve this question on instance:</strong> <span class="inline-code">ssh ${machineHostname}</span></span>
+                        <strong>Solve this question on instance:</strong> <span class="inline-code">ssh ${machineHostname}</span> <span class="text-muted">(Password: <span class="inline-code">123</span>)</span></span>
                     </div>
                     
                     <div class="mb-3">

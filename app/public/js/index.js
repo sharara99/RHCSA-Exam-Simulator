@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                         <div class="modal-footer rounded-bottom">
                             <button type="button" class="btn btn-sm btn-primary" id="continueSessionBtn">CONTINUE CURRENT SESSION</button>
-                            <button type="button" class="btn btn-sm btn-danger" id="terminateAndProceedBtn">TERMINATE AND PROCEED</button>
+                            <button type="button" class="btn btn-sm btn-danger" id="terminateAndProceedBtn">TERMINATE SESSION</button>
                         </div>
                     </div>
                 </div>
@@ -165,8 +165,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Remove any existing event listeners by cloning and replacing the buttons
         const oldTerminateBtn = document.getElementById('terminateAndProceedBtn');
-        const newTerminateBtn = oldTerminateBtn.cloneNode(true);
-        oldTerminateBtn.parentNode.replaceChild(newTerminateBtn, oldTerminateBtn);
+        if (oldTerminateBtn) {
+            const newTerminateBtn = oldTerminateBtn.cloneNode(true);
+            oldTerminateBtn.parentNode.replaceChild(newTerminateBtn, oldTerminateBtn);
+        }
         
         const oldContinueBtn = document.getElementById('continueSessionBtn');
         const newContinueBtn = oldContinueBtn.cloneNode(true);
@@ -210,13 +212,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.removeItem('currentExamData');
                 localStorage.removeItem('currentExamId');
                 
-                // Proceed with starting a new exam
+                // Just hide loading overlay and wait for user to click "Start Exam" again
                 hideLoadingOverlay();
-                if (labs.length > 0) {
-                    examSelectionModal.show();
-                } else {
-                    fetchLabs(true);
-                }
+                // Don't automatically proceed - user must click "Start Exam" button to create new exam
             })
             .catch(error => {
                 console.error('Error terminating exam:', error);
@@ -224,7 +222,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Reset button state
                 terminateBtn.disabled = false;
-                terminateBtn.innerHTML = 'Terminate and Proceed';
+                terminateBtn.innerHTML = 'TERMINATE SESSION';
                 
                 alert('Failed to terminate the active exam. Please try again later.');
             });
@@ -234,10 +232,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('Modal hidden, cleaning up event listeners');
                 
                 // Remove event listeners by replacing buttons with clones if they exist
-                if (document.getElementById('terminateAndProceedBtn')) {
-                    const oldTerminateBtn = document.getElementById('terminateAndProceedBtn');
-                    const newTerminateBtn = oldTerminateBtn.cloneNode(true);
-                    oldTerminateBtn.parentNode.replaceChild(newTerminateBtn, oldTerminateBtn);
+                const terminateBtn = document.getElementById('terminateAndProceedBtn');
+                if (terminateBtn) {
+                    const newTerminateBtn = terminateBtn.cloneNode(true);
+                    terminateBtn.parentNode.replaceChild(newTerminateBtn, terminateBtn);
                 }
                 
                 if (document.getElementById('continueSessionBtn')) {
@@ -463,10 +461,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function pollExamStatus(examId) {
         const startTime = Date.now();
-        const pollInterval = 1000; // Poll every 1 second
-        const maxWaitTime = 10 * 60 * 1000; // Maximum 10 minutes
-        const retryAfterFailedTime = 3 * 60 * 1000; // Retry after 3 minutes if failed
-        let firstFailedTime = null;
+        const pollInterval = 2000; // Poll every 2 seconds
+        const maxWaitTime = 5 * 60 * 1000; // Maximum 5 minutes
+        const refreshAfterTime = 3 * 60 * 1000; // Auto-refresh after 3 minutes if still preparing
+        let firstPreparingTime = Date.now();
         
         // Check if we've already refreshed once (to prevent infinite refresh loop)
         const refreshKey = `exam_refresh_${examId}`;
@@ -479,15 +477,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Check if we've exceeded maximum wait time
                     if (elapsedTime > maxWaitTime) {
-                        updateLoadingMessage('Preparation is taking longer than expected. Please refresh the page.');
-                        // Auto-refresh after 5 seconds
+                        updateLoadingMessage('Preparation is taking longer than expected. Refreshing page...');
+                        // Auto-refresh after 2 seconds
                         setTimeout(() => {
+                            localStorage.setItem('currentExamId', examId);
                             window.location.reload();
-                        }, 5000);
+                        }, 2000);
                         return;
                     }
                     
                     const response = await fetch(`/facilitator/api/v1/exams/${examId}/status`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
                     const data = await response.json();
                     
                     // set warmup time in seconds
@@ -506,21 +508,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         return;
                     }
                     
-                    // Handle PREPARATION_FAILED status - continue polling but with longer interval
-                    if (data.status === 'PREPARATION_FAILED') {
-                        // Track when we first detected the failure (or use start time if already failed when page loaded)
-                        if (firstFailedTime === null) {
-                            firstFailedTime = Date.now();
-                        }
+                    // Handle PREPARING status - add timeout and refresh mechanism
+                    if (data.status === 'PREPARING') {
+                        const timeSincePreparing = Date.now() - firstPreparingTime;
                         
-                        const timeSinceFailed = Date.now() - firstFailedTime;
-                        
-                        // If we've been in failed state for more than 3 minutes and haven't refreshed yet, refresh once
-                        if (timeSinceFailed >= retryAfterFailedTime && !hasRefreshed) {
-                            console.log('PREPARATION_FAILED for 3+ minutes, refreshing page once...');
+                        // If preparing for more than refresh time and haven't refreshed, refresh once
+                        if (timeSincePreparing >= refreshAfterTime && !hasRefreshed) {
+                            console.log('PREPARING for 3+ minutes, refreshing page once...');
                             // Mark that we've refreshed to prevent infinite loop
                             sessionStorage.setItem(refreshKey, 'true');
-                            updateLoadingMessage('Preparation encountered an issue. Refreshing to check status...');
+                            updateLoadingMessage('Preparation is taking longer than expected. Refreshing to check status...');
                             setTimeout(() => {
                                 // Store exam ID in localStorage before reload so it can be used after refresh
                                 localStorage.setItem('currentExamId', examId);
@@ -530,12 +527,11 @@ document.addEventListener('DOMContentLoaded', function() {
                             return;
                         }
                         
-                        // If we've already refreshed once and still failed, check if exam is actually ready
-                        if (hasRefreshed && timeSinceFailed >= retryAfterFailedTime) {
+                        // If already refreshed once and still preparing, check if exam is actually ready
+                        if (hasRefreshed && timeSincePreparing >= refreshAfterTime) {
                             // Try to check if exam is actually ready despite the status
-                            // Sometimes the status might be stale but exam is actually ready
                             console.log('Already refreshed once, checking if exam is actually ready...');
-                            updateLoadingMessage('Checking exam status...');
+                            updateLoadingMessage('Checking if exam is ready...');
                             
                             // Try to access exam page directly - if it works, redirect
                             fetch(`/facilitator/api/v1/exams/${examId}/questions`)
@@ -548,18 +544,85 @@ document.addEventListener('DOMContentLoaded', function() {
                                             window.location.href = `/exam.html?id=${examId}`;
                                         }, 1000);
                                     } else {
-                                        // Still not ready, show error message
-                                        updateLoadingMessage('Exam preparation is taking longer than expected. Please try refreshing manually or contact support.');
+                                        // Still not ready, show countdown
+                                        const remainingTime = Math.max(0, maxWaitTime - elapsedTime);
+                                        const minutesRemaining = Math.ceil(remainingTime / 60000);
+                                        updateLoadingMessage(`Preparation in progress. Please wait... (Auto-refresh in ${minutesRemaining} min)`);
                                     }
                                 })
                                 .catch(() => {
-                                    updateLoadingMessage('Exam preparation is taking longer than expected. Please try refreshing manually or contact support.');
+                                    const remainingTime = Math.max(0, maxWaitTime - elapsedTime);
+                                    const minutesRemaining = Math.ceil(remainingTime / 60000);
+                                    updateLoadingMessage(`Preparation in progress. Please wait... (Auto-refresh in ${minutesRemaining} min)`);
                                 });
+                            setTimeout(poll, pollInterval);
+                            return;
+                        }
+                        
+                        // Calculate progress and show message
+                        const elapsedTimeSeconds = elapsedTime / 1000;
+                        const progress = Math.min((elapsedTimeSeconds / warmUpTimeInSeconds) * 100, 95);
+                        updateProgressBar(progress);
+                        
+                        // Show countdown if approaching refresh time
+                        if (timeSincePreparing >= refreshAfterTime - 60000) {
+                            const remainingTime = Math.max(0, refreshAfterTime - timeSincePreparing);
+                            const minutesRemaining = Math.ceil(remainingTime / 60000);
+                            updateLoadingMessage(`Preparation in progress. Please wait... (Auto-refresh in ${minutesRemaining} min)`);
+                        } else {
+                            updateLoadingMessage(data.message || 'Preparing lab environment...');
+                        }
+                        
+                        setTimeout(poll, pollInterval);
+                        return;
+                    }
+                    
+                    // Handle PREPARATION_FAILED status
+                    if (data.status === 'PREPARATION_FAILED') {
+                        const timeSinceFailed = Date.now() - firstPreparingTime;
+                        
+                        // If failed for more than refresh time and haven't refreshed, refresh once
+                        if (timeSinceFailed >= refreshAfterTime && !hasRefreshed) {
+                            console.log('PREPARATION_FAILED for 3+ minutes, refreshing page once...');
+                            sessionStorage.setItem(refreshKey, 'true');
+                            updateLoadingMessage('Preparation encountered an issue. Refreshing to check status...');
+                            setTimeout(() => {
+                                localStorage.setItem('currentExamId', examId);
+                                window.location.reload();
+                            }, 2000);
+                            return;
+                        }
+                        
+                        // If already refreshed once and still failed, check if exam is actually ready
+                        if (hasRefreshed && timeSinceFailed >= refreshAfterTime) {
+                            console.log('Already refreshed once, checking if exam is actually ready...');
+                            updateLoadingMessage('Checking exam status...');
+                            
+                            fetch(`/facilitator/api/v1/exams/${examId}/questions`)
+                                .then(response => {
+                                    if (response.ok) {
+                                        console.log('Exam questions available, redirecting to exam page...');
+                                        updateLoadingMessage('Exam is ready! Redirecting...');
+                                        setTimeout(() => {
+                                            window.location.href = `/exam.html?id=${examId}`;
+                                        }, 1000);
+                                    } else {
+                                        const remainingTime = Math.max(0, maxWaitTime - elapsedTime);
+                                        const minutesRemaining = Math.ceil(remainingTime / 60000);
+                                        updateLoadingMessage(`Preparation in progress. Please wait... (Auto-refresh in ${minutesRemaining} min)`);
+                                    }
+                                })
+                                .catch(() => {
+                                    const remainingTime = Math.max(0, maxWaitTime - elapsedTime);
+                                    const minutesRemaining = Math.ceil(remainingTime / 60000);
+                                    updateLoadingMessage(`Preparation in progress. Please wait... (Auto-refresh in ${minutesRemaining} min)`);
+                                });
+                            setTimeout(poll, pollInterval);
                             return;
                         }
                         
                         // Continue polling with longer interval (5 seconds) when failed
-                        const remainingTime = Math.max(0, retryAfterFailedTime - timeSinceFailed);
+                        const remainingTime = Math.max(0, refreshAfterTime - timeSinceFailed);
                         const minutesRemaining = Math.ceil(remainingTime / 60000);
                         updateLoadingMessage(`Preparation in progress. Please wait... (Auto-refresh in ${minutesRemaining} min)`);
                         updateProgressBar(Math.min((elapsedTime / maxWaitTime) * 100, 95));
@@ -567,14 +630,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         return;
                     }
                     
-                    // Reset failed time if status is not failed
-                    if (data.status !== 'PREPARATION_FAILED') {
-                        firstFailedTime = null;
-                    }
-                    
-                    // Reset failed time if status is not failed
-                    if (data.status !== 'PREPARATION_FAILED') {
-                        lastFailedTime = null;
+                    // Reset preparing time if status changed
+                    if (data.status !== 'PREPARING' && data.status !== 'PREPARATION_FAILED') {
+                        firstPreparingTime = Date.now();
                     }
                     
                     // Calculate progress based on warm-up time
