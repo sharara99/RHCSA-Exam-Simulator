@@ -130,7 +130,6 @@ function generateQuestionContent(question) {
     try {
         // Get original data
         const originalData = question.originalData || {};
-        const machineHostname = originalData.machineHostname || 'N/A';
         const namespace = originalData.namespace || 'N/A';
         const concepts = originalData.concepts || [];
         const conceptsString = concepts.join(', ');
@@ -142,11 +141,6 @@ function generateQuestionContent(question) {
         return `
             <div class="d-flex flex-column" style="height: 100%;">
                 <div class="question-header">
-                    
-                    <div class="mb-3">
-                        <strong>Solve this question on instance:</strong> <span class="inline-code">ssh ${machineHostname}</span> <span class="text-muted">(Password: <span class="inline-code">123</span>)</span></span>
-                    </div>
-                    
                     <div class="mb-3">
                         <strong>Topic:</strong> <span class="text-primary">${namespace}</span>
                     </div>
