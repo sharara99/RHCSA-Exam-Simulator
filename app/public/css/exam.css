@@ -490,6 +490,11 @@ ul.requirements li {
 .clickable-ingress,
 .clickable-namespace,
 .clickable-host,
+.clickable-hostname,
+.clickable-ip,
+.clickable-netmask,
+.clickable-gateway-ip,
+.clickable-dns,
 .clickable-path,
 .clickable-service,
 .clickable-port,
@@ -642,6 +647,75 @@ ul.requirements li {
     border-color: #20c997;
 }
 
+/* Hostname styling */
+.clickable-hostname {
+    color: #20c997;
+    background-color: rgba(32, 201, 151, 0.1);
+    border: 1px solid rgba(32, 201, 151, 0.3);
+    font-weight: 500;
+}
+
+.clickable-hostname:hover {
+    background-color: rgba(32, 201, 151, 0.2);
+    border-color: #20c997;
+}
+
+/* IP Address styling */
+.clickable-ip {
+    color: #007bff;
+    background-color: rgba(0, 123, 255, 0.1);
+    border: 1px solid rgba(0, 123, 255, 0.3);
+    font-weight: 500;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+.clickable-ip:hover {
+    background-color: rgba(0, 123, 255, 0.2);
+    border-color: #007bff;
+}
+
+/* Netmask styling */
+.clickable-netmask {
+    color: #6610f2;
+    background-color: rgba(102, 16, 242, 0.1);
+    border: 1px solid rgba(102, 16, 242, 0.3);
+    font-weight: 500;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+.clickable-netmask:hover {
+    background-color: rgba(102, 16, 242, 0.2);
+    border-color: #6610f2;
+}
+
+/* Gateway IP styling */
+.clickable-gateway-ip {
+    color: #e83e8c;
+    background-color: rgba(232, 62, 140, 0.1);
+    border: 1px solid rgba(232, 62, 140, 0.3);
+    font-weight: 500;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+.clickable-gateway-ip:hover {
+    background-color: rgba(232, 62, 140, 0.2);
+    border-color: #e83e8c;
+}
+
+/* DNS styling */
+.clickable-dns {
+    color: #fd7e14;
+    background-color: rgba(253, 126, 20, 0.1);
+    border: 1px solid rgba(253, 126, 20, 0.3);
+    font-weight: 500;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+.clickable-dns:hover {
+    background-color: rgba(253, 126, 20, 0.2);
+    border-color: #fd7e14;
+}
+
 /* Path styling */
 .clickable-path {
     color: #17a2b8;
@@ -763,7 +837,12 @@ ul.requirements li {
 .clickable-image:hover::after,
 .clickable-nodeport:hover::after,
 .clickable-provisioner:hover::after,
-.clickable-gatewayclass:hover::after {
+.clickable-gatewayclass:hover::after,
+.clickable-hostname:hover::after,
+.clickable-ip:hover::after,
+.clickable-netmask:hover::after,
+.clickable-gateway-ip:hover::after,
+.clickable-dns:hover::after {
     content: " 📋";
     font-size: 0.8em;
     opacity: 0.7;

@@ -20,6 +20,36 @@ function processQuestionContent(content) {
         '<span class="clickable-command" data-copy-text="$1" title="Click to copy command">$1</span>'
     );
     
+    // Hostname: value (full hostname like node1.domain.example.com) - must come before generic host pattern
+    processedContent = processedContent.replace(
+        /(Hostname|hostname):\s*([a-zA-Z0-9.-]+(?:\.[a-zA-Z0-9.-]+)*)/g,
+        '$1: <span class="clickable-hostname" data-copy-text="$2" title="Click to copy hostname">$2</span>'
+    );
+    
+    // IP Address: value
+    processedContent = processedContent.replace(
+        /(IP Address|IP address|ip address):\s*([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})/g,
+        '$1: <span class="clickable-ip" data-copy-text="$2" title="Click to copy IP address">$2</span>'
+    );
+    
+    // Netmask: value
+    processedContent = processedContent.replace(
+        /(Netmask|netmask):\s*([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})/g,
+        '$1: <span class="clickable-netmask" data-copy-text="$2" title="Click to copy netmask">$2</span>'
+    );
+    
+    // Gateway: value
+    processedContent = processedContent.replace(
+        /(Gateway|gateway):\s*([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})/g,
+        '$1: <span class="clickable-gateway-ip" data-copy-text="$2" title="Click to copy gateway">$2</span>'
+    );
+    
+    // DNS: value
+    processedContent = processedContent.replace(
+        /(DNS|dns):\s*([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})/g,
+        '$1: <span class="clickable-dns" data-copy-text="$2" title="Click to copy DNS">$2</span>'
+    );
+    
     // Host: value
     processedContent = processedContent.replace(
         /(Host|host):\s*([a-zA-Z0-9.-]+)/g,
@@ -68,9 +98,10 @@ function processQuestionContent(content) {
         '<span class="clickable-image" data-copy-text="$1" title="Click to copy container image">$1</span>'
     );
     
-    // RHCSA: node1, node2 (exam instances)
+    // RHCSA: node1, node2 (exam instances) - but not when part of a full hostname
+    // Only match standalone node1/node2, not when followed by a dot (part of domain)
     processedContent = processedContent.replace(
-        /\b(node1|node2)\b/g,
+        /\b(node1|node2)\b(?!\.)/g,
         '<span class="clickable-host" data-copy-text="$1" title="Click to copy">$1</span>'
     );
     
