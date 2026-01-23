@@ -33,6 +33,31 @@ echo "alias kubectl='echo \"kubectl is not available in this RHCSA environment\"
 
 # Add alias for nmctl -> nmcli (common typo)
 echo "alias nmctl='nmcli'" >> /root/.bashrc
+# Add alias for ifconifg -> ifconfig (common typo)
+echo "alias ifconifg='ifconfig'" >> /root/.bashrc
+echo "alias idfonifg='ifconfig'" >> /root/.bashrc
+
+# Create helper function to apply nmcli configuration to wire interface
+echo "" >> /root/.bashrc
+echo "# Helper function to apply nmcli wire configuration to interface" >> /root/.bashrc
+echo "apply_wire_config() {" >> /root/.bashrc
+echo "    export DBUS_SYSTEM_BUS_ADDRESS=unix:path=/var/run/dbus/system_bus_socket" >> /root/.bashrc
+echo "    local ipv4_addr=\$(nmcli -t -f ipv4.addresses connection show wire 2>/dev/null | cut -d: -f2)" >> /root/.bashrc
+echo "    local ipv4_gw=\$(nmcli -t -f ipv4.gateway connection show wire 2>/dev/null | cut -d: -f2)" >> /root/.bashrc
+echo "    # Apply if addresses are set (works even if method is auto)" >> /root/.bashrc
+echo "    if [ -n \"\$ipv4_addr\" ]; then" >> /root/.bashrc
+echo "        ip addr add \$ipv4_addr dev wire 2>/dev/null || ip addr replace \$ipv4_addr dev wire 2>/dev/null" >> /root/.bashrc
+echo "        if [ -n \"\$ipv4_gw\" ]; then" >> /root/.bashrc
+echo "            ip route add default via \$ipv4_gw dev wire 2>/dev/null || ip route replace default via \$ipv4_gw dev wire 2>/dev/null" >> /root/.bashrc
+echo "        fi" >> /root/.bashrc
+echo "        echo \"Applied IP configuration to wire interface\"" >> /root/.bashrc
+echo "    else" >> /root/.bashrc
+echo "        echo \"No manual IP configuration found for wire connection\"" >> /root/.bashrc
+echo "    fi" >> /root/.bashrc
+echo "}" >> /root/.bashrc
+echo "" >> /root/.bashrc
+echo "# Alias to make it easier - just type 'apply' after configuring" >> /root/.bashrc
+echo "alias apply='apply_wire_config'" >> /root/.bashrc
 
 # Enable bash completion for root (only for interactive shells)
 if [ -f /usr/share/bash-completion/bash_completion ]; then
@@ -49,13 +74,13 @@ if [ -f /etc/bash_completion.d/nmcli ]; then
     echo "fi" >> /root/.bashrc
 fi
 
-# Enable systemd completions (hostnamectl, systemctl, timedatectl, etc.)
+# Enable systemd completions (hostnamectl, systemctl, timedatectl, etc.) and nmcli
 if [ -d /usr/share/bash-completion/completions ]; then
-    echo "# Load systemd and other completions" >> /root/.bashrc
+    echo "# Load systemd and other completions (hostnamectl, nmcli, etc.)" >> /root/.bashrc
     echo "if [ -n \"\$PS1\" ]; then" >> /root/.bashrc
     echo "  # Load bash completion first" >> /root/.bashrc
     echo "  [ -f /usr/share/bash-completion/bash_completion ] && source /usr/share/bash-completion/bash_completion 2>/dev/null || true" >> /root/.bashrc
-    echo "  # Load all completion files including hostnamectl" >> /root/.bashrc
+    echo "  # Load all completion files including hostnamectl and nmcli" >> /root/.bashrc
     echo "  for file in /usr/share/bash-completion/completions/*; do" >> /root/.bashrc
     echo "    [ -r \"\$file\" ] && source \"\$file\" 2>/dev/null || true" >> /root/.bashrc
     echo "  done" >> /root/.bashrc
@@ -67,12 +92,13 @@ echo "set completion-ignore-case on" >> /root/.inputrc
 echo "set show-all-if-ambiguous on" >> /root/.inputrc
 echo "set show-all-if-unmodified on" >> /root/.inputrc
 
-# Ensure hostnamectl completion is loaded (add at end to override any issues)
+# Ensure hostnamectl and nmcli completion are loaded (add at end to override any issues)
 echo "" >> /root/.bashrc
-echo "# Force load hostnamectl completion" >> /root/.bashrc
+echo "# Force load hostnamectl and nmcli completion" >> /root/.bashrc
 echo "if [ -f /usr/share/bash-completion/bash_completion ]; then" >> /root/.bashrc
 echo "    source /usr/share/bash-completion/bash_completion 2>/dev/null || true" >> /root/.bashrc
 echo "    [ -f /usr/share/bash-completion/completions/hostnamectl ] && source /usr/share/bash-completion/completions/hostnamectl 2>/dev/null || true" >> /root/.bashrc
+echo "    [ -f /usr/share/bash-completion/completions/nmcli ] && source /usr/share/bash-completion/completions/nmcli 2>/dev/null || true" >> /root/.bashrc
 echo "fi" >> /root/.bashrc
 
 # Ensure hostnamectl wrapper exists (created in Dockerfile, but verify it's executable)
@@ -160,13 +186,16 @@ fi
 # Create permanent "wire" network interface (create it early, before NetworkManager)
 # This ensures it exists and persists
 create_wire_interface() {
-    # Create dummy interface if it doesn't exist
-    if ! ip link show wire >/dev/null 2>&1; then
-        ip link add wire type dummy 2>/dev/null || true
-        echo "Created network interface 'wire'"
-    fi
-    # Bring interface up
-    ip link set wire up 2>/dev/null || true
+    # Use the script from Dockerfile to create interface
+    /usr/local/bin/create-wire-interface.sh 2>/dev/null || {
+        # Fallback: try to create directly
+        if ! ip link show wire >/dev/null 2>&1; then
+            ip link add wire type dummy 2>/dev/null || true
+            echo "Created network interface 'wire'"
+        fi
+        # Bring interface up
+        ip link set wire up 2>/dev/null || true
+    }
 }
 
 # Create the wire interface immediately
@@ -179,14 +208,18 @@ if [ -f /usr/sbin/NetworkManager ]; then
     mkdir -p /run/NetworkManager
     
     # Configure NetworkManager to work in container without systemd
+    # Only manage "wire" interface for exam purposes - hide eth0 and lo
     mkdir -p /etc/NetworkManager/conf.d
     cat > /etc/NetworkManager/conf.d/container.conf <<EOF
 [main]
-plugins=ifupdown,keyfile
-[ifupdown]
-managed=false
+plugins=keyfile
 [keyfile]
-unmanaged-devices=*
+# Only manage "wire" interface, explicitly unmanage eth0 and lo
+# This makes eth0 and lo not appear in nmcli device status
+unmanaged-devices=interface-name:eth0;interface-name:lo
+[device]
+# Allow NetworkManager to manage ethernet devices (wire will be managed)
+wifi.scan-rand-mac-address=no
 EOF
     
     # Wait for D-Bus to be ready before starting NetworkManager
@@ -211,25 +244,39 @@ EOF
          echo "NetworkManager may have failed to start, check /tmp/nm.log"
      fi) &
     
-    # Create permanent NetworkManager connection for "wire" interface after NetworkManager starts
+    # Create permanent NetworkManager connections for interfaces after NetworkManager starts
     (sleep 20 && \
      export DBUS_SYSTEM_BUS_ADDRESS=unix:path=/var/run/dbus/system_bus_socket && \
      # Ensure interface exists
      create_wire_interface && \
      # Wait a bit more for NetworkManager to be fully ready
      sleep 5 && \
-     # Create NetworkManager connection if it doesn't exist
-     if ! nmcli con show wire >/dev/null 2>&1; then
+     # Ensure wire interface exists before creating connection
+     create_wire_interface && \
+     sleep 3 && \
+     # Remove ALL existing wire connections to avoid duplicates
+     # Get all UUIDs and check if their name is "wire", then delete them
+     for uuid in $(nmcli -t -f UUID connection show 2>/dev/null); do
+         if [ -n "$uuid" ]; then
+             con_name=$(nmcli -t -f NAME connection show "$uuid" 2>/dev/null | cut -d: -f2)
+             if [ "$con_name" = "wire" ]; then
+                 nmcli connection delete "$uuid" 2>/dev/null || true
+             fi
+         fi
+     done && \
+     sleep 2 && \
+     # Create NetworkManager connection for "wire" interface
+     # This is the ONLY interface that should be managed and configurable
+     # Only create if it doesn't exist (double-check after deletion)
+     if ! nmcli -t -f NAME connection show 2>/dev/null | grep -q "^wire:"; then
          nmcli connection add type ethernet ifname wire con-name wire autoconnect yes 2>/dev/null && \
          nmcli connection modify wire connection.autoconnect yes 2>/dev/null && \
-         nmcli connection up wire 2>/dev/null && \
-         echo "NetworkManager connection 'wire' created and activated"
+         echo "NetworkManager connection 'wire' created (only managed interface for exam)"
      else
-         # Ensure existing connection is set to autoconnect
-         nmcli connection modify wire connection.autoconnect yes 2>/dev/null && \
-         nmcli connection up wire 2>/dev/null && \
-         echo "NetworkManager connection 'wire' configured for autoconnect"
-     fi) &
+         echo "NetworkManager connection 'wire' already exists"
+     fi && \
+     # Note: connection up may fail in container, but connection is saved and can be configured
+     nmcli connection up wire 2>/dev/null || echo "Connection 'wire' saved (can be configured with nmcli)") &
 fi
 
 # Run in the background - don't block the main container startup

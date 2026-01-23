@@ -33,6 +33,17 @@ RUN apt-get update && apt-get install -y \
 #create candidate user with password "123"
 RUN useradd -m candidate && echo "candidate:123" | chpasswd
 
+# Create wire interface (dummy interface for exam networking questions)
+# This will be managed by NetworkManager and is the only interface students can configure
+RUN echo '#!/bin/bash\n\
+# Create wire interface if it does not exist\n\
+if ! ip link show wire >/dev/null 2>&1; then\n\
+    ip link add wire type dummy 2>/dev/null || true\n\
+    ip link set wire up 2>/dev/null || true\n\
+fi\n\
+' > /usr/local/bin/create-wire-interface.sh && \
+    chmod +x /usr/local/bin/create-wire-interface.sh
+
 # Configure SSH server
 RUN mkdir -p /var/run/sshd
 RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
@@ -74,8 +85,7 @@ RUN chown -R candidate:candidate /home/candidate/.ssh
 RUN echo "# Enable bash completion" >> /root/.bashrc && \
     echo "if [ -n \"\$PS1\" ]; then" >> /root/.bashrc && \
     echo "  [ -f /usr/share/bash-completion/bash_completion ] && source /usr/share/bash-completion/bash_completion 2>/dev/null || true" >> /root/.bashrc && \
-    echo "  [ -f /etc/bash_completion.d/nmcli ] && source /etc/bash_completion.d/nmcli 2>/dev/null || true" >> /root/.bashrc && \
-    echo "  # Load all completion files including hostnamectl" >> /root/.bashrc && \
+    echo "  # Load all completion files including hostnamectl and nmcli" >> /root/.bashrc && \
     echo "  if [ -d /usr/share/bash-completion/completions ]; then" >> /root/.bashrc && \
     echo "    for file in /usr/share/bash-completion/completions/*; do" >> /root/.bashrc && \
     echo "      [ -r \"\$file\" ] && source \"\$file\" 2>/dev/null || true" >> /root/.bashrc && \
@@ -184,6 +194,58 @@ _hostnamectl()
 complete -F _hostnamectl hostnamectl
 EOF
 
+# Create nmcli wrapper to filter out eth0 from device status (only show wire)
+# This wrapper preserves autocompletion functionality and auto-applies wire config
+RUN cat > /usr/local/bin/nmcli <<'EOF' && chmod +x /usr/local/bin/nmcli
+#!/bin/bash
+# Wrapper for nmcli to filter out eth0 from device status output
+# Only wire interface should be visible and configurable
+# Automatically applies IP configuration to wire interface after modify
+
+# Check if this is being called for completion (bash completion sets COMP_LINE, COMP_POINT, etc.)
+if [ -n "$COMP_LINE" ] || [ -n "$COMP_WORDS" ]; then
+    # For completion, always use real nmcli but filter device status results
+    if [ "$1" = "device" ] && [ "$2" = "status" ]; then
+        /usr/bin/nmcli "$@" 2>&1 | grep -v -E "^\s*(eth0|lo)\s+"
+    else
+        /usr/bin/nmcli "$@"
+    fi
+elif [ "$1" = "connection" ] && [ "$2" = "modify" ] && [ "$3" = "wire" ]; then
+    # Modify wire connection and automatically apply IP to interface
+    /usr/bin/nmcli "$@"
+    EXIT_CODE=$?
+    if [ $EXIT_CODE -eq 0 ]; then
+        # Auto-apply the configuration to the wire interface
+        export DBUS_SYSTEM_BUS_ADDRESS=unix:path=/var/run/dbus/system_bus_socket
+        # Get the IP configuration from the connection
+        ipv4_addr=$(/usr/bin/nmcli -t -f ipv4.addresses connection show wire 2>/dev/null | cut -d: -f2)
+        ipv4_gw=$(/usr/bin/nmcli -t -f ipv4.gateway connection show wire 2>/dev/null | cut -d: -f2)
+        ipv4_method=$(/usr/bin/nmcli -t -f ipv4.method connection show wire 2>/dev/null | cut -d: -f2)
+        
+        # Apply IP if addresses are set (works even if method is auto)
+        if [ -n "$ipv4_addr" ]; then
+            # Remove any existing IP from wire interface first
+            ip addr flush dev wire 2>/dev/null || true
+            # Add the new IP address
+            ip addr add $ipv4_addr dev wire 2>/dev/null || ip addr replace $ipv4_addr dev wire 2>/dev/null
+            # Set gateway if specified
+            if [ -n "$ipv4_gw" ]; then
+                ip route del default dev wire 2>/dev/null || true
+                ip route add default via $ipv4_gw dev wire 2>/dev/null || ip route replace default via $ipv4_gw dev wire 2>/dev/null
+            fi
+            echo "Applied IP configuration to wire interface: $ipv4_addr"
+        fi
+    fi
+    exit $EXIT_CODE
+elif [ "$1" = "device" ] && [ "$2" = "status" ]; then
+    # Filter out eth0 and lo from device status, only show wire
+    /usr/bin/nmcli "$@" 2>&1 | grep -v -E "^\s*(eth0|lo)\s+"
+else
+    # Pass through all other nmcli commands (including completion queries)
+    /usr/bin/nmcli "$@"
+fi
+EOF
+
 # Create hostname wrapper that reads from /etc/hostname (for exam compatibility)
 RUN cat > /usr/local/bin/hostname <<'EOF' && chmod +x /usr/local/bin/hostname
 #!/bin/bash
@@ -239,21 +301,25 @@ RUN echo "" >> /etc/bash.bashrc && \
     echo "  [ -f /usr/share/bash-completion/completions/hostnamectl ] && source /usr/share/bash-completion/completions/hostnamectl 2>/dev/null" >> /etc/bash.bashrc && \
     echo "fi" >> /etc/bash.bashrc
 
-# Also ensure it's in root's .bashrc as backup
+# Also ensure it's in root's .bashrc as backup (same as hostnamectl)
 RUN echo "" >> /root/.bashrc && \
-    echo "# Force load bash completion and hostnamectl completion" >> /root/.bashrc && \
+    echo "# Force load bash completion, hostnamectl and nmcli completion" >> /root/.bashrc && \
     echo "if [ -f /usr/share/bash-completion/bash_completion ] && ! shopt -oq posix; then" >> /root/.bashrc && \
     echo "  source /usr/share/bash-completion/bash_completion 2>/dev/null" >> /root/.bashrc && \
     echo "  [ -f /usr/share/bash-completion/completions/hostnamectl ] && source /usr/share/bash-completion/completions/hostnamectl 2>/dev/null" >> /root/.bashrc && \
-    echo "fi" >> /root/.bashrc
+    echo "  [ -f /usr/share/bash-completion/completions/nmcli ] && source /usr/share/bash-completion/completions/nmcli 2>/dev/null" >> /root/.bashrc && \
+    echo "fi" >> /root/.bashrc && \
+    echo "" >> /root/.bashrc && \
+    echo "# Explicitly load nmcli completion (same as hostnamectl)" >> /root/.bashrc && \
+    echo "[ -f /usr/share/bash-completion/completions/nmcli ] && source /usr/share/bash-completion/completions/nmcli 2>/dev/null || true" >> /root/.bashrc
 
 # Copy startup script
 COPY startup.sh /usr/local/bin/startup.sh
 RUN chmod +x /usr/local/bin/startup.sh
 
-# Copy and install nmcli completion script
-COPY nmcli-completion.sh /etc/bash_completion.d/nmcli
-RUN chmod +x /etc/bash_completion.d/nmcli
+# Copy and install nmcli completion script to same location as hostnamectl
+COPY nmcli-completion.sh /usr/share/bash-completion/completions/nmcli
+RUN chmod 644 /usr/share/bash-completion/completions/nmcli
 
 COPY agent.py /tmp/agent.py
 
