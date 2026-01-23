@@ -121,6 +121,10 @@ mkdir -p /opt/files /opt/processed
 mkdir -p /mnt/database
 echo "Created exam directories: /root/locatedfiles, /opt/files, /opt/processed, /mnt/database"
 
+# Ensure /etc/yum.repos.d/ directory exists for Q2 (repository configuration)
+mkdir -p /etc/yum.repos.d
+echo "Created /etc/yum.repos.d directory for repository configuration"
+
 # Create user 'alth' for container questions (Q12, Q13) if it doesn't exist
 if ! id -u alth >/dev/null 2>&1; then
     useradd -m -s /bin/bash alth

@@ -194,6 +194,218 @@ _hostnamectl()
 complete -F _hostnamectl hostnamectl
 EOF
 
+# Create yum wrapper for exam practice (Ubuntu container doesn't have yum)
+# This allows students to practice yum commands and repository configuration
+RUN mkdir -p /etc/yum.repos.d && \
+    cat > /usr/local/bin/yum <<'EOF' && chmod +x /usr/local/bin/yum
+#!/bin/bash
+# YUM wrapper for exam practice in Ubuntu container
+# Maps yum commands to apt-get equivalents while maintaining yum-like interface
+
+REPO_DIR="/etc/yum.repos.d"
+
+# Function to parse .repo files and show repository info
+show_repos() {
+    local enabled_only=${1:-false}
+    echo "Loaded plugins: fastestmirror, langpacks"
+    echo ""
+    echo "repo id                          repo name                    status"
+    echo "repolist: 0"
+    echo ""
+    if [ -d "$REPO_DIR" ]; then
+        local repo_count=0
+        for repo_file in "$REPO_DIR"/*.repo; do
+            if [ -f "$repo_file" ]; then
+                while IFS= read -r line; do
+                    # Skip comments and empty lines
+                    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+                    [[ -z "$line" ]] && continue
+                    
+                    # Parse [repo-id] sections
+                    if [[ "$line" =~ ^\[([^\]]+)\] ]]; then
+                        repo_id="${BASH_REMATCH[1]}"
+                        repo_name=""
+                        baseurl=""
+                        enabled="1"
+                    fi
+                    
+                    # Parse name=
+                    if [[ "$line" =~ ^[[:space:]]*name[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+                        repo_name="${BASH_REMATCH[1]}"
+                    fi
+                    
+                    # Parse enabled=
+                    if [[ "$line" =~ ^[[:space:]]*enabled[[:space:]]*=[[:space:]]*([01]) ]]; then
+                        enabled="${BASH_REMATCH[1]}"
+                    fi
+                    
+                    # Parse baseurl=
+                    if [[ "$line" =~ ^[[:space:]]*baseurl[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+                        baseurl="${BASH_REMATCH[1]}"
+                        if [ "$enabled" = "1" ] || [ "$enabled_only" = "false" ]; then
+                            status="enabled"
+                            [ "$enabled" = "0" ] && status="disabled"
+                            printf "%-32s %-28s %s\n" "$repo_id" "$repo_name" "$status"
+                            repo_count=$((repo_count + 1))
+                        fi
+                    fi
+                done < "$repo_file"
+            fi
+        done
+        if [ $repo_count -eq 0 ]; then
+            echo "repolist: 0"
+        fi
+    else
+        echo "repolist: 0"
+    fi
+}
+
+case "$1" in
+    clean)
+        case "$2" in
+            all)
+                echo "Cleaning repos: baseos appstream"
+                echo "Cleaning up everything"
+                # Clear apt cache as equivalent
+                apt-get clean 2>/dev/null || true
+                echo "Cleaned up everything"
+                ;;
+            *)
+                apt-get clean 2>/dev/null || true
+                ;;
+        esac
+        ;;
+    update|upgrade)
+        echo "Loaded plugins: fastestmirror, langpacks"
+        # Check if repos are configured
+        if [ -d "$REPO_DIR" ] && [ -n "$(ls -A $REPO_DIR/*.repo 2>/dev/null)" ]; then
+            echo "Resolving Dependencies"
+            echo "--> Running transaction check"
+            echo "--> Finished Dependency Resolution"
+            echo ""
+            echo "Dependencies Resolved"
+            echo ""
+            echo "Nothing to do."
+        else
+            echo "There are no enabled repos."
+            echo " Run \"yum repolist all\" to see your repos."
+        fi
+        ;;
+    repolist)
+        case "$2" in
+            all)
+                show_repos false
+                ;;
+            enabled|"")
+                show_repos true
+                ;;
+            *)
+                show_repos true
+                ;;
+        esac
+        ;;
+    install)
+        shift
+        if [ $# -eq 0 ]; then
+            echo "Error: Need a package name"
+            exit 1
+        fi
+        # Check if repos are configured
+        if [ -d "$REPO_DIR" ] && [ -n "$(ls -A $REPO_DIR/*.repo 2>/dev/null)" ]; then
+            echo "Loaded plugins: fastestmirror, langpacks"
+            echo "Resolving Dependencies"
+            echo "--> Running transaction check"
+            echo "--> Processing Dependency: $1"
+            echo "--> Finished Dependency Resolution"
+            echo ""
+            echo "Dependencies Resolved"
+            echo ""
+            echo "Transaction Summary"
+            echo "Install  1 Package"
+            echo ""
+            echo "Total download size: 0 k"
+            echo "Installed size: 0 k"
+            echo "Is this ok [y/d/N]: y"
+            echo "Downloading packages:"
+            echo "Running transaction check"
+            echo "Running transaction test"
+            echo "Transaction test succeeded"
+            echo "Running transaction"
+            echo "  Installing : $1"
+            echo "Complete!"
+            # Map RHEL package names to Ubuntu equivalents
+            case "$1" in
+                httpd)
+                    actual_pkg="apache2"
+                    ;;
+                firewalld)
+                    actual_pkg="ufw"
+                    ;;
+                chrony|podman)
+                    actual_pkg="$1"
+                    ;;
+                *)
+                    actual_pkg="$1"
+                    ;;
+            esac
+            # Actually install using apt-get
+            apt-get update -qq 2>/dev/null || true
+            if apt-get install -y "$actual_pkg" 2>/dev/null; then
+                # Installation succeeded
+                true
+            else
+                # If mapped package fails and it's different, try original
+                if [ "$actual_pkg" != "$1" ]; then
+                    apt-get install -y "$1" 2>/dev/null || {
+                        echo "No package $1 available."
+                        exit 1
+                    }
+                else
+                    echo "No package $1 available."
+                    exit 1
+                fi
+            fi
+        else
+            echo "There are no enabled repos."
+            echo " Run \"yum repolist all\" to see your repos."
+            exit 1
+        fi
+        ;;
+    list|search|info|provides|whatprovides)
+        if [ -d "$REPO_DIR" ] && [ -n "$(ls -A $REPO_DIR/*.repo 2>/dev/null)" ]; then
+            echo "Loaded plugins: fastestmirror, langpacks"
+            shift
+            if [ "$1" = "available" ] || [ "$1" = "installed" ] || [ -z "$1" ]; then
+                echo "Available Packages"
+                # List some common packages for exam
+                echo "httpd.x86_64"
+                echo "firewalld.noarch"
+                echo "chrony.x86_64"
+                echo "podman.x86_64"
+            else
+                # Search for the package
+                apt-cache search "$1" 2>/dev/null | head -10 || echo "No matches found"
+            fi
+        else
+            echo "There are no enabled repos."
+            echo " Run \"yum repolist all\" to see your repos."
+        fi
+        ;;
+    *)
+        echo "Usage: yum [options] COMMAND"
+        echo ""
+        echo "Commands:"
+        echo "  clean         Remove cached data"
+        echo "  update        Update packages"
+        echo "  install       Install packages"
+        echo "  repolist      Display configured repositories"
+        echo "  list          List packages"
+        echo ""
+        exit 1
+        ;;
+esac
+EOF
+
 # Create nmcli wrapper to filter out eth0 from device status (only show wire)
 # This wrapper preserves autocompletion functionality and auto-applies wire config
 RUN cat > /usr/local/bin/nmcli <<'EOF' && chmod +x /usr/local/bin/nmcli
