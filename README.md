@@ -15,21 +15,80 @@ A powerful Red Hat certification practice environment that provides a realistic 
 - **Docker-based deployment** for easy setup and consistent environment
 - **Timed exam mode** with real exam-like conditions and countdown timer 
 
+## Getting Started
 
-## Installation
+### Starting the Environment
 
-#### Linux & macOS
+To start the entire exam simulator environment:
+
 ```bash
-curl -fsSL https://raw.githubusercontent.com/nishanb/ck-x/master/scripts/install.sh | bash
+docker compose up -d
 ```
 
-#### Windows ( make sure WSL2 is enabled in the docker desktop )
-```powershell
-irm https://raw.githubusercontent.com/nishanb/ck-x/master/scripts/install.ps1 | iex
+This command will:
+- Build all required Docker images (if not already built)
+- Start all services in detached mode (running in the background)
+- Set up the network and dependencies
+
+**Note**: The first build may take several minutes as it downloads base images and installs dependencies.
+
+### Viewing Logs
+
+To view logs from all services:
+
+```bash
+docker compose logs
 ```
 
-### Manual Installation
-For detailed installation instructions, please refer to our [Deployment Guide](scripts/COMPOSE-DEPLOY.md).
+To view logs from a specific service:
+
+```bash
+# View remote-desktop logs
+docker compose logs remote-desktop
+
+# View facilitator logs
+docker compose logs facilitator
+
+# View webapp logs
+docker compose logs webapp
+
+# View nginx logs
+docker compose logs nginx
+```
+
+To follow logs in real-time (similar to `tail -f`):
+
+```bash
+# Follow all logs
+docker compose logs -f
+
+# Follow specific service logs
+docker compose logs -f remote-desktop
+```
+
+To view only recent logs:
+
+```bash
+# Last 100 lines from all services
+docker compose logs --tail=100
+
+# Last 50 lines from remote-desktop
+docker compose logs --tail=50 remote-desktop
+```
+
+### Stopping the Environment
+
+To stop all services:
+
+```bash
+docker compose down
+```
+
+To stop and remove all containers, networks, and volumes:
+
+```bash
+docker compose down -v
+```
 
 ## How to Use - RHCSA Exam Environment
 
