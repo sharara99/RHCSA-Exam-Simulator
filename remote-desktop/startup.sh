@@ -34,20 +34,52 @@ echo "alias kubectl='echo \"kubectl is not available in this RHCSA environment\"
 # Add alias for nmctl -> nmcli (common typo)
 echo "alias nmctl='nmcli'" >> /root/.bashrc
 
-# Enable bash completion for root
+# Enable bash completion for root (only for interactive shells)
 if [ -f /usr/share/bash-completion/bash_completion ]; then
-    echo "source /usr/share/bash-completion/bash_completion" >> /root/.bashrc
+    echo "# Enable bash completion" >> /root/.bashrc
+    echo "if [ -n \"\$PS1\" ]; then" >> /root/.bashrc
+    echo "  source /usr/share/bash-completion/bash_completion 2>/dev/null || true" >> /root/.bashrc
+    echo "fi" >> /root/.bashrc
 fi
 
 # Enable nmcli completion for root
 if [ -f /etc/bash_completion.d/nmcli ]; then
-    echo "source /etc/bash_completion.d/nmcli" >> /root/.bashrc
+    echo "if [ -n \"\$PS1\" ]; then" >> /root/.bashrc
+    echo "  source /etc/bash_completion.d/nmcli 2>/dev/null || true" >> /root/.bashrc
+    echo "fi" >> /root/.bashrc
+fi
+
+# Enable systemd completions (hostnamectl, systemctl, timedatectl, etc.)
+if [ -d /usr/share/bash-completion/completions ]; then
+    echo "# Load systemd and other completions" >> /root/.bashrc
+    echo "if [ -n \"\$PS1\" ]; then" >> /root/.bashrc
+    echo "  # Load bash completion first" >> /root/.bashrc
+    echo "  [ -f /usr/share/bash-completion/bash_completion ] && source /usr/share/bash-completion/bash_completion 2>/dev/null || true" >> /root/.bashrc
+    echo "  # Load all completion files including hostnamectl" >> /root/.bashrc
+    echo "  for file in /usr/share/bash-completion/completions/*; do" >> /root/.bashrc
+    echo "    [ -r \"\$file\" ] && source \"\$file\" 2>/dev/null || true" >> /root/.bashrc
+    echo "  done" >> /root/.bashrc
+    echo "fi" >> /root/.bashrc
 fi
 
 # Ensure bash is interactive for completion to work
 echo "set completion-ignore-case on" >> /root/.inputrc
 echo "set show-all-if-ambiguous on" >> /root/.inputrc
 echo "set show-all-if-unmodified on" >> /root/.inputrc
+
+# Ensure hostnamectl completion is loaded (add at end to override any issues)
+echo "" >> /root/.bashrc
+echo "# Force load hostnamectl completion" >> /root/.bashrc
+echo "if [ -f /usr/share/bash-completion/bash_completion ]; then" >> /root/.bashrc
+echo "    source /usr/share/bash-completion/bash_completion 2>/dev/null || true" >> /root/.bashrc
+echo "    [ -f /usr/share/bash-completion/completions/hostnamectl ] && source /usr/share/bash-completion/completions/hostnamectl 2>/dev/null || true" >> /root/.bashrc
+echo "fi" >> /root/.bashrc
+
+# Ensure hostnamectl wrapper exists (created in Dockerfile, but verify it's executable)
+if [ -f /usr/local/bin/hostnamectl ]; then
+    chmod +x /usr/local/bin/hostnamectl
+    echo "Verified hostnamectl wrapper is available"
+fi
 
 # Ensure node1 hostname resolution
 if ! grep -q "node1" /etc/hosts; then
