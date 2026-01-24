@@ -28,7 +28,11 @@ RUN apt-get update && apt-get install -y \
     dnsutils \
     iproute2 \
     bash-completion \
-    lvm2
+    lvm2 \
+    cron \
+    chrony \
+    apache2 \
+    && (apt-get install -y podman 2>/dev/null || echo "podman not available in this repository") || true
 
 #create candidate user with password "123"
 RUN useradd -m candidate && echo "candidate:123" | chpasswd
@@ -351,15 +355,25 @@ case "$1" in
             # Actually install using apt-get
             apt-get update -qq 2>/dev/null || true
             if apt-get install -y "$actual_pkg" 2>/dev/null; then
-                # Installation succeeded
+                # Installation succeeded - auto-start and enable the service
+                if command -v systemctl >/dev/null 2>&1; then
+                    systemctl start "$1" 2>/dev/null || true
+                    systemctl enable "$1" 2>/dev/null || true
+                fi
                 true
             else
                 # If mapped package fails and it's different, try original
                 if [ "$actual_pkg" != "$1" ]; then
-                    apt-get install -y "$1" 2>/dev/null || {
+                    if apt-get install -y "$1" 2>/dev/null; then
+                        # Installation succeeded - auto-start and enable the service
+                        if command -v systemctl >/dev/null 2>&1; then
+                            systemctl start "$1" 2>/dev/null || true
+                            systemctl enable "$1" 2>/dev/null || true
+                        fi
+                    else
                         echo "No package $1 available."
                         exit 1
-                    }
+                    fi
                 else
                     echo "No package $1 available."
                     exit 1
@@ -523,6 +537,9 @@ map_service_name() {
         firewalld)
             echo "ufw"
             ;;
+        crond)
+            echo "cron"
+            ;;
         *)
             echo "$1"
             ;;
@@ -562,6 +579,23 @@ service_exists() {
         return $?
     fi
     
+    # Special check for cron
+    if [ "$mapped_svc" = "cron" ]; then
+        [ -f "/etc/init.d/cron" ] || \
+        [ -f "/usr/sbin/cron" ] || \
+        dpkg -l | grep -q "^ii.*cron"
+        return $?
+    fi
+    
+    # Special check for chronyd
+    if [ "$mapped_svc" = "chronyd" ]; then
+        command -v chronyd >/dev/null 2>&1 || \
+        [ -f "/usr/sbin/chronyd" ] || \
+        [ -f "/etc/init.d/chronyd" ] || \
+        dpkg -l | grep -q "^ii.*chrony"
+        return $?
+    fi
+    
     # General check for other services
     command -v "$mapped_svc" >/dev/null 2>&1 || \
     [ -f "/etc/init.d/$mapped_svc" ] || \
@@ -586,6 +620,18 @@ is_service_running() {
         return $?
     fi
     
+    # For cron, check for cron processes
+    if [ "$mapped_svc" = "cron" ]; then
+        pgrep -f "cron" >/dev/null 2>&1 || pgrep -f "crond" >/dev/null 2>&1
+        return $?
+    fi
+    
+    # For chronyd, check for chronyd processes
+    if [ "$mapped_svc" = "chronyd" ]; then
+        pgrep -f "chronyd" >/dev/null 2>&1
+        return $?
+    fi
+    
     return 1
 }
 
@@ -596,9 +642,15 @@ start_service() {
     
     # Special handling for apache2
     if [ "$mapped_svc" = "apache2" ]; then
-        if command -v apache2 >/dev/null 2>&1; then
+        if command -v apache2ctl >/dev/null 2>&1; then
             apache2ctl start 2>/dev/null || apache2 -k start 2>/dev/null || /usr/sbin/apache2 -k start 2>/dev/null || true
         fi
+    # Special handling for cron
+    elif [ "$mapped_svc" = "cron" ]; then
+        service cron start 2>/dev/null || /etc/init.d/cron start 2>/dev/null || true
+    # Special handling for chronyd
+    elif [ "$mapped_svc" = "chronyd" ]; then
+        service chronyd start 2>/dev/null || /etc/init.d/chronyd start 2>/dev/null || chronyd 2>/dev/null || true
     elif [ -f "/etc/init.d/$mapped_svc" ]; then
         /etc/init.d/"$mapped_svc" start 2>/dev/null || true
     elif command -v "$mapped_svc" >/dev/null 2>&1; then
@@ -616,6 +668,12 @@ stop_service() {
         if command -v apache2ctl >/dev/null 2>&1; then
             apache2ctl stop 2>/dev/null || apache2 -k stop 2>/dev/null || /usr/sbin/apache2 -k stop 2>/dev/null || true
         fi
+    # Special handling for cron
+    elif [ "$mapped_svc" = "cron" ]; then
+        service cron stop 2>/dev/null || /etc/init.d/cron stop 2>/dev/null || true
+    # Special handling for chronyd
+    elif [ "$mapped_svc" = "chronyd" ]; then
+        service chronyd stop 2>/dev/null || /etc/init.d/chronyd stop 2>/dev/null || pkill chronyd 2>/dev/null || true
     elif [ -f "/etc/init.d/$mapped_svc" ]; then
         /etc/init.d/"$mapped_svc" stop 2>/dev/null || true
     elif command -v "$mapped_svc" >/dev/null 2>&1; then
@@ -640,6 +698,12 @@ get_service_status() {
             ;;
         ufw)
             desc="Uncomplicated Firewall"
+            ;;
+        cron)
+            desc="LSB: Regular background program processing daemon"
+            ;;
+        chronyd)
+            desc="LSB: NTP client/server daemon"
             ;;
         *)
             desc="LSB: $mapped_svc service"

@@ -304,8 +304,40 @@ python3 /tmp/agent.py &
  echo "Directories:" && \
  (ls -ld /root/locatedfiles /opt/files /opt/processed /mnt/database 2>/dev/null | awk '{print "  ✓", $9}' || echo "  (checking...)") && \
  echo "" && \
- echo "LVM Tools:" && \
- (which pvcreate vgcreate lvcreate >/dev/null 2>&1 && echo "  ✓ LVM2 tools available" || echo "  ✗ LVM2 tools not found") && \
- echo "==========================================") &
+echo "LVM Tools:" && \
+(which pvcreate vgcreate lvcreate >/dev/null 2>&1 && echo "  ✓ LVM2 tools available" || echo "  ✗ LVM2 tools not found") && \
+echo "==========================================") &
 
-exit 0 
+# Start and enable services that are required for exam questions
+# This ensures services are running and enabled by default
+(sleep 5 && \
+echo "" && \
+echo "Starting and enabling exam services..." && \
+# Start and enable cron (for Q5 - cron jobs)
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl start cron 2>/dev/null || service cron start 2>/dev/null || true
+    systemctl enable cron 2>/dev/null || update-rc.d cron enable 2>/dev/null || true
+    systemctl start crond 2>/dev/null || true  # Also handle crond name
+    systemctl enable crond 2>/dev/null || true
+fi && \
+# Start and enable chronyd (for Q15 - time synchronization)
+# Note: chronyd service might be called 'chrony' in Ubuntu
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl start chronyd 2>/dev/null || \
+    systemctl start chrony 2>/dev/null || \
+    service chronyd start 2>/dev/null || \
+    service chrony start 2>/dev/null || true
+    systemctl enable chronyd 2>/dev/null || \
+    systemctl enable chrony 2>/dev/null || \
+    update-rc.d chronyd enable 2>/dev/null || \
+    update-rc.d chrony enable 2>/dev/null || true
+fi && \
+# Start and enable httpd (apache2) if installed
+if command -v systemctl >/dev/null 2>&1 && (dpkg -l | grep -q "^ii.*apache2"); then
+    systemctl start httpd 2>/dev/null || true
+    systemctl enable httpd 2>/dev/null || true
+fi && \
+# Note: podman doesn't need to be started as a service
+echo "  ✓ Services configured") &
+
+exit 0
