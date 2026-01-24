@@ -505,6 +505,279 @@ else
 fi
 EOF
 
+# Create systemctl wrapper for service management (systemd not available in container)
+# This allows systemctl commands to work for exam practice
+RUN mkdir -p /var/lib/systemctl-state && \
+    cat > /usr/local/bin/systemctl <<'EOF' && chmod +x /usr/local/bin/systemctl
+#!/bin/bash
+# Wrapper for systemctl to work without systemd in container
+
+STATE_DIR="/var/lib/systemctl-state"
+
+# Map RHEL service names to Ubuntu equivalents
+map_service_name() {
+    case "$1" in
+        httpd)
+            echo "apache2"
+            ;;
+        firewalld)
+            echo "ufw"
+            ;;
+        *)
+            echo "$1"
+            ;;
+    esac
+}
+
+# Check if service is enabled
+is_service_enabled() {
+    local svc="$1"
+    [ -f "$STATE_DIR/$svc.enabled" ]
+}
+
+# Mark service as enabled
+enable_service() {
+    local svc="$1"
+    mkdir -p "$STATE_DIR"
+    touch "$STATE_DIR/$svc.enabled"
+}
+
+# Mark service as disabled
+disable_service() {
+    local svc="$1"
+    rm -f "$STATE_DIR/$svc.enabled"
+}
+
+# Check if service exists
+service_exists() {
+    local mapped_svc="$1"
+    
+    # Special check for apache2
+    if [ "$mapped_svc" = "apache2" ]; then
+        command -v apache2 >/dev/null 2>&1 || \
+        command -v apache2ctl >/dev/null 2>&1 || \
+        [ -f "/usr/sbin/apache2" ] || \
+        [ -f "/etc/init.d/apache2" ] || \
+        dpkg -l | grep -q "^ii.*apache2"
+        return $?
+    fi
+    
+    # General check for other services
+    command -v "$mapped_svc" >/dev/null 2>&1 || \
+    [ -f "/etc/init.d/$mapped_svc" ] || \
+    [ -f "/usr/sbin/$mapped_svc" ] || \
+    [ -f "/usr/bin/$mapped_svc" ] || \
+    dpkg -l | grep -q "^ii.*$mapped_svc"
+}
+
+# Check if service is running
+is_service_running() {
+    local svc="$1"
+    local mapped_svc=$(map_service_name "$svc")
+    
+    # Check for running process
+    if pgrep -f "$mapped_svc" >/dev/null 2>&1; then
+        return 0
+    fi
+    
+    # For apache2, check for apache2 processes
+    if [ "$mapped_svc" = "apache2" ]; then
+        pgrep -f "apache2" >/dev/null 2>&1 || pgrep -f "httpd" >/dev/null 2>&1
+        return $?
+    fi
+    
+    return 1
+}
+
+# Start a service
+start_service() {
+    local svc="$1"
+    local mapped_svc=$(map_service_name "$svc")
+    
+    # Special handling for apache2
+    if [ "$mapped_svc" = "apache2" ]; then
+        if command -v apache2 >/dev/null 2>&1; then
+            apache2ctl start 2>/dev/null || apache2 -k start 2>/dev/null || /usr/sbin/apache2 -k start 2>/dev/null || true
+        fi
+    elif [ -f "/etc/init.d/$mapped_svc" ]; then
+        /etc/init.d/"$mapped_svc" start 2>/dev/null || true
+    elif command -v "$mapped_svc" >/dev/null 2>&1; then
+        "$mapped_svc" start 2>/dev/null || true
+    fi
+}
+
+# Stop a service
+stop_service() {
+    local svc="$1"
+    local mapped_svc=$(map_service_name "$svc")
+    
+    # Special handling for apache2
+    if [ "$mapped_svc" = "apache2" ]; then
+        if command -v apache2ctl >/dev/null 2>&1; then
+            apache2ctl stop 2>/dev/null || apache2 -k stop 2>/dev/null || /usr/sbin/apache2 -k stop 2>/dev/null || true
+        fi
+    elif [ -f "/etc/init.d/$mapped_svc" ]; then
+        /etc/init.d/"$mapped_svc" stop 2>/dev/null || true
+    elif command -v "$mapped_svc" >/dev/null 2>&1; then
+        "$mapped_svc" stop 2>/dev/null || true
+    fi
+}
+
+# Get service status output
+get_service_status() {
+    local svc="$1"
+    local mapped_svc=$(map_service_name "$svc")
+    local active="inactive (dead)"
+    local enabled="disabled"
+    local loaded="loaded"
+    local main_pid=""
+    local desc=""
+    
+    # Get description based on service
+    case "$mapped_svc" in
+        apache2)
+            desc="LSB: Apache2 web server"
+            ;;
+        ufw)
+            desc="Uncomplicated Firewall"
+            ;;
+        *)
+            desc="LSB: $mapped_svc service"
+            ;;
+    esac
+    
+    if is_service_running "$svc"; then
+        active="active (running)"
+        main_pid=$(pgrep -f "$mapped_svc" 2>/dev/null | head -1)
+        [ -z "$main_pid" ] && main_pid=$(pgrep -f "httpd" 2>/dev/null | head -1)
+    fi
+    
+    if is_service_enabled "$svc"; then
+        enabled="enabled"
+    fi
+    
+    echo "● $svc.service - $desc"
+    echo "   Loaded: $loaded (/etc/init.d/$mapped_svc; $enabled; vendor preset: enabled)"
+    if [ -n "$main_pid" ]; then
+        echo "   Active: $active since $(date '+%Y-%m-%d %H:%M:%S %Z'); 1min ago"
+        echo "     Docs: man:systemd-sysv-generator(8)"
+        echo "  Process: $main_pid ExecStart=/etc/init.d/$mapped_svc start (code=exited, status=0/SUCCESS)"
+        echo " Main PID: $main_pid"
+    else
+        echo "   Active: $active"
+        echo "     Docs: man:systemd-sysv-generator(8)"
+    fi
+}
+
+case "$1" in
+    status)
+        if [ -z "$2" ]; then
+            echo "Usage: systemctl status <service>"
+            exit 1
+        fi
+        svc="$2"
+        mapped_svc=$(map_service_name "$svc")
+        
+        # Check if service exists
+        if ! service_exists "$mapped_svc"; then
+            echo "● $svc.service"
+            echo "   Loaded: not-found (Reason: No such file or directory)"
+            echo "   Active: inactive (dead)"
+            exit 1
+        fi
+        
+        get_service_status "$svc"
+        ;;
+    start)
+        if [ -z "$2" ]; then
+            echo "Usage: systemctl start <service>"
+            exit 1
+        fi
+        svc="$2"
+        start_service "$svc"
+        ;;
+    stop)
+        if [ -z "$2" ]; then
+            echo "Usage: systemctl stop <service>"
+            exit 1
+        fi
+        svc="$2"
+        stop_service "$svc"
+        ;;
+    restart)
+        if [ -z "$2" ]; then
+            echo "Usage: systemctl restart <service>"
+            exit 1
+        fi
+        svc="$2"
+        stop_service "$svc"
+        sleep 1
+        start_service "$svc"
+        ;;
+    enable)
+        if [ -z "$2" ]; then
+            echo "Usage: systemctl enable <service>"
+            exit 1
+        fi
+        svc="$2"
+        enable_service "$svc"
+        echo "Created symlink /etc/systemd/system/multi-user.target.wants/$svc.service → /etc/init.d/$(map_service_name "$svc")."
+        ;;
+    disable)
+        if [ -z "$2" ]; then
+            echo "Usage: systemctl disable <service>"
+            exit 1
+        fi
+        svc="$2"
+        disable_service "$svc"
+        echo "Removed /etc/systemd/system/multi-user.target.wants/$svc.service."
+        ;;
+    is-active)
+        if [ -z "$2" ]; then
+            echo "Usage: systemctl is-active <service>"
+            exit 1
+        fi
+        svc="$2"
+        if is_service_running "$svc"; then
+            echo "active"
+            exit 0
+        else
+            echo "inactive"
+            exit 1
+        fi
+        ;;
+    is-enabled)
+        if [ -z "$2" ]; then
+            echo "Usage: systemctl is-enabled <service>"
+            exit 1
+        fi
+        svc="$2"
+        if is_service_enabled "$svc"; then
+            echo "enabled"
+            exit 0
+        else
+            echo "disabled"
+            exit 1
+        fi
+        ;;
+    --version)
+        /bin/systemctl --version 2>/dev/null || echo "systemd 229"
+        ;;
+    *)
+        # Pass through other commands to real systemctl if it exists
+        if command -v /bin/systemctl >/dev/null 2>&1; then
+            /bin/systemctl "$@" 2>/dev/null || {
+                echo "systemctl: command '$1' not supported in container environment"
+                exit 1
+            }
+        else
+            echo "systemctl: command '$1' not supported in container environment"
+            exit 1
+        fi
+        ;;
+esac
+EOF
+
 # Ensure completion is loaded - add to /etc/bash.bashrc for all users
 RUN echo "" >> /etc/bash.bashrc && \
     echo "# Load bash completion for all interactive shells" >> /etc/bash.bashrc && \
