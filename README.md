@@ -3,6 +3,9 @@
 
 ![RHCSA Exam Environment](RHCSA.png)
 
+![Example Environment](image.png)
+*Example of the exam environment interface*
+
 A powerful Red Hat certification practice environment that provides a realistic exam-like experience for Red Hat exam preparation.
 
 **Red Hat Certification Exam Simulator** - Practice in a realistic environment that mirrors the actual RHCSA, RHCE, and other Red Hat certification exams. Enhanced with Red Hat exam questions and dumps by sharara for comprehensive preparation.
